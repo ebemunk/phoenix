@@ -6,7 +6,7 @@ The page is inacessible now, I don't know what happened to it.
 They were inside hfalg.c, ver 1.20 written by William D. Colburn (2010/10/08 04:23:00).
 hfalg stands for Hacker Factor Algorithms.
 
-Some functions below have been adapted from the original foruse with the CImg library.
+Some functions below have been adapted from the original for use with the CImg library.
 
 See http://www.hackerfactor.com/papers/bh-usa-07-krawetz-wp.pdf for more information.
 */

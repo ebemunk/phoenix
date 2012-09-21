@@ -1,9 +1,13 @@
 /*
-tests for some functions
+tests functions
 */
+#ifndef Test_h_ver
+#define Test_h_ver 1
+
 #include "CImg.h"
 
 #include "MinMax.h"
+#include "Histogram.h"
 
 #include <time.h>
 
@@ -45,10 +49,38 @@ CImg<T> test_MinMax3(CImg<T> &source) {
 	return output;
 }
 
+template<typename T>
+CImg<T> test_AvgDist(CImg<T> &source) {
+	CImg<T> output = AvgDist(source);
+	(source, output).display("Original | AvgDist");
+	return output;
+}
+
+template<typename T>
+CImg<T> test_HSV_histogram(CImg<T> &source) {
+	CImg<T> output = HSV_histogram(source);
+	(source, output).display("Original | HSV Histogram");
+	return output;
+}
+
+template<typename T>
+CImg<T> test_Lab_histogram(CImg<T> &source) {
+	CImg<T> output = Lab_histogram(source);
+	(source, output).display("Original | Lab Histogram");
+	return output;
+}
+
+/* highly experimental */
+template<typename T>
+void _test( CImg<T>(*func)(CImg<T> &), CImg<T> &source ) {
+	CImg<> img = (*func)(source);
+	img.display();
+}
+
 /* good for speed testing in gui */
 template<typename T>
 void test_All_display(CImg<T> &source) {
-	(source, MinColor(source), MidColor(source), MaxColor(source), MinMax1(source), MinMax3(source)).display("Original | MinColor | MidColor | MaxColor | MinMax1 | MinMax3");
+	(source, MinColor(source), MidColor(source), MaxColor(source), MinMax1(source), MinMax3(source), AvgDist(source), HSV_histogram(source)).display("Original | MinColor | MidColor | MaxColor | MinMax1 | MinMax3 | AvgDist | HSV Histogram");
 }
 
 /*
@@ -70,3 +102,4 @@ void test_speed( CImg<T>(*func)(CImg<T> &), CImg<T> &source, int num_itr ) {
 	printf("Time elapsed: %.2lf \n", difftime(end, start));
 	return;
 }
+#endif
