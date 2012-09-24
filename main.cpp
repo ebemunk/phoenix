@@ -14,7 +14,7 @@ using namespace std;
 using namespace cimg_library;
 
 void main(int argc, char* argv) {
-	CImg<unsigned int> testimage("testimage.jpg");
+	CImg<unsigned int> testimage("imgphoenix_resources/testimage.jpg");
 	/* basic init tests
 	(MinColor(testimage), MidColor(testimage), MaxColor(testimage)).display();
 	test_MinMax1(testimage);
@@ -31,7 +31,9 @@ void main(int argc, char* argv) {
 	//CImg<double> hsv = HSV_histogram(testimage);
 	//CImg<double> fs = rgb2gray(HSV_full_spectrum());
 	//overlay(hsv, fs, 0.7).display();]
-	//Lab_histogram(testimage).save("lol.jpg");
-	Lab_full_spectrum().display();
+	//overlay(Lab_histogram(testimage), rgb2gray(Lab_full_spectrum()), 0.9).display();
+	(Histogram(testimage, HSV), Histogram(testimage, HSV, true)).display();
+	(Histogram(testimage, Lab), Histogram(testimage, Lab, true)).display();
 	std::system("pause");
 }
+ 

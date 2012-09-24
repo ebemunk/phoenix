@@ -1,4 +1,5 @@
 /*
+imgPhoenix
 tests functions
 */
 #ifndef Test_h_ver
@@ -13,62 +14,6 @@ tests functions
 
 using namespace std;
 using namespace cimg_library;
-
-template<typename T>
-CImg<T> test_MinColor(CImg<T> &source) {
-	CImg<T> output = MinColor(source);
-	(source, output).display("Original | MinColor");
-	return output;
-}
-
-template<typename T>
-CImg<T> test_MidColor(CImg<T> &source) {
-	CImg<T> output = MidColor(source);
-	(source, output).display("Original | MidColor");
-	return output;
-}
-
-template<typename T>
-CImg<T> test_MaxColor(CImg<T> &source) {
-	CImg<T> output = MaxColor(source);
-	(source, output).display("Original | MaxColor");
-	return output;
-}
-
-template<typename T>
-CImg<T> test_MinMax1(CImg<T> &source) {
-	CImg<T> output = MinMax1(source);
-	(source, output).display("Original | MinMax1");
-	return output;
-}
-
-template<typename T>
-CImg<T> test_MinMax3(CImg<T> &source) {
-	CImg<T> output = MinMax3(source);
-	(source, output).display("Original | MinMax3");
-	return output;
-}
-
-template<typename T>
-CImg<T> test_AvgDist(CImg<T> &source) {
-	CImg<T> output = AvgDist(source);
-	(source, output).display("Original | AvgDist");
-	return output;
-}
-
-template<typename T>
-CImg<T> test_HSV_histogram(CImg<T> &source) {
-	CImg<T> output = HSV_histogram(source);
-	(source, output).display("Original | HSV Histogram");
-	return output;
-}
-
-template<typename T>
-CImg<T> test_Lab_histogram(CImg<T> &source) {
-	CImg<T> output = Lab_histogram(source);
-	(source, output).display("Original | Lab Histogram");
-	return output;
-}
 
 /* highly experimental */
 template<typename T>
@@ -103,3 +48,4 @@ void test_speed( CImg<T>(*func)(CImg<T> &), CImg<T> &source, int num_itr ) {
 	return;
 }
 #endif
+ 

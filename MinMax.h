@@ -1,5 +1,6 @@
 /*
-MinMax Functions
+imgPhoenix
+MinMax header
 
 These are a couple functions that used to reside in http://infohost.nmt.edu/~schlake/ela/ some time ago.
 The page is inacessible now, I don't know what happened to it.
@@ -185,3 +186,4 @@ CImg<float> AvgDist(CImg<T> &source) {
 
 
 #endif
+ 

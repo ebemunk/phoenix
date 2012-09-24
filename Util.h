@@ -1,4 +1,9 @@
+/*
+imgPhoenix
+Utility header
 
+utility functions that the main program or any other component has to use
+*/
 #ifndef Util_h_ver
 #define Util_h_ver 1
 
@@ -6,9 +11,11 @@
 
 using namespace cimg_library;
 
-// convert image to greyscale
-// formula from http://www.mathworks.com/help/toolbox/images/ref/rgb2gray.html
-//returns CImg<double> so be careful!
+/*
+convert image to greyscale
+formula from http://www.mathworks.com/help/toolbox/images/ref/rgb2gray.html
+returns CImg<double> so be careful!
+*/
 template<typename T>
 CImg<double> rgb2gray( CImg<T> &input ) {
 	if( input.spectrum() != 3 ) return input;
@@ -20,6 +27,9 @@ CImg<double> rgb2gray( CImg<T> &input ) {
 	return output;
 }
 
+/*
+overlay two images on top of each other using the alpha value given for the first image
+*/
 template<typename T>
 CImg<T> overlay(CImg<T> &source1, CImg<T> &source2, double alpha_s1=0.5) {
 	CImg<T> output(source1, "xyzc");
@@ -31,3 +41,4 @@ CImg<T> overlay(CImg<T> &source1, CImg<T> &source2, double alpha_s1=0.5) {
 	return output;
 }
 #endif
+ 
