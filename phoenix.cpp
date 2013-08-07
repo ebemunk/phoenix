@@ -26,6 +26,8 @@ int main(int argc, char *argv[]) {
 	    ("hsv", value<int>()->implicit_value(0), "HSV Colorspace Histogram")
 	    ("lab", value<int>()->implicit_value(0), "Lab Colorspace Histogram")
 	    ("borders", bool_switch()->default_value(false), "Show RGB borders in histograms")
+	    ("lg", bool_switch()->default_value(false), "Luminance Gradient")
+	    ("avgdist", bool_switch()->default_value(false), "Avgdist")
 	    ("display,d", bool_switch()->default_value(false), "Display outputs")
 	;
 
@@ -92,7 +94,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	if(vm.count("ela")) {
-		cout << vm["ela"].as<int>() << endl;
 		Mat ela;
 		error_level_analysis(source_image, ela, vm["ela"].as<int>());
 
@@ -102,6 +103,32 @@ int main(int argc, char *argv[]) {
 
 		if(vm["display"].as<bool>()) {
 			image_list.push_back(pair<Mat, string>(ela, "Error Level Analysis"));
+		}
+	}
+
+	if(vm["lg"].as<bool>()) {
+		Mat lg;
+		luminance_gradient(source_image, lg);
+
+		if(vm.count("output")) {
+			imwrite(output_path + "_lg.png", lg);
+		}
+
+		if(vm["display"].as<bool>()) {
+			image_list.push_back(pair<Mat, string>(lg, "Luminance Gradient"));
+		}
+	}
+
+	if(vm["avgdist"].as<bool>()) {
+		Mat avgdist1;
+		avgdist(source_image, avgdist1);
+
+		if(vm.count("output")) {
+			imwrite(output_path + "_lg.png", avgdist1);
+		}
+
+		if(vm["display"].as<bool>()) {
+			image_list.push_back(pair<Mat, string>(avgdist1, "Avgdist"));
 		}
 	}
 
@@ -148,7 +175,7 @@ int main(int argc, char *argv[]) {
 			namedWindow(it->second);
 			imshow(it->second, it->first);
 		}
-		waitKey();
+		waitKey(0);
 	}
 
 	return 0;

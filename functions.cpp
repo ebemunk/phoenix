@@ -121,30 +121,64 @@ void lab_histogram(Mat &src, Mat &dst, bool whitebg = false) {
 void error_level_analysis(Mat &src, Mat &dst, int quality = 90) {
 	vector<uchar> buffer;
 
-    vector<int> compression_params;
-    compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
-    compression_params.push_back(quality);
+    vector<int> save_params(2);
+    save_params.push_back(CV_IMWRITE_JPEG_QUALITY);
+    save_params.push_back(quality);
 
-	imencode(".jpg", src, buffer, compression_params);
+	imencode(".jpg", src, buffer, save_params);
 
 	Mat resaved = imdecode(buffer, CV_LOAD_IMAGE_COLOR);
-	Mat ela = abs(src - resaved)*10;
 
-	Mat ycrcb;
-	cvtColor(ela, ycrcb, CV_BGR2YCrCb);
+	normalize(abs(src - resaved), dst, 0, 255, CV_MINMAX);
+}
 
-	vector<Mat> channels;
-	split(ycrcb, channels);
-	for(int i=0; i<channels.size(); i++) {
-		//equalizeHist(channels[i], channels[i]);
-		//normalize(channels[i], channels[i], 0, 255, NORM_MINMAX);
+void luminance_gradient(Mat &src, Mat &dst) {
+	Mat greyscale;
+	cvtColor(src, greyscale, CV_BGR2GRAY);
+
+	//get sobel in x and y directions
+	Size size = src.size();
+	Mat sobelX = Mat::zeros(size, CV_32F);
+	Mat sobelY = Mat::zeros(size, CV_32F);
+
+	Sobel(greyscale, sobelX, CV_32F, 1, 0);
+	Sobel(greyscale, sobelY, CV_32F, 0, 1);
+
+	dst = Mat::zeros(size, CV_32FC3);
+	Vec3f lg_px;
+	float sx, sy, angle;
+	for (int i = 0; i < dst.rows; i++) {
+		for (int j = 0; j < dst.cols; j++) {
+			sx = sobelX.at<float>(i, j);
+			sy = sobelY.at<float>(i, j);
+			angle = atan2(sx, sy);
+			lg_px[0] = sqrt(pow(sx, 2) + pow(sy, 2)); //B: magnitude of the x and y derivatives
+			lg_px[1] = -sin(angle) / 2.0 + 0.5; //G: -sin(angle) mapped to [0,1]
+			lg_px[2] = -cos(angle) / 2.0 + 0.5; //R: -cos(angle) mapped to [0,1]
+			dst.at<Vec3f>(i, j) = lg_px;
+		}
 	}
-	//equalizeHist(channels[0], channels[0]);
-	//normalize(channels[0], channels[0], 0, 255, NORM_MINMAX);
-	merge(channels, ycrcb);
 
-	cvtColor(ycrcb,ela,CV_YCrCb2BGR);
-	namedWindow("aA");
-	imshow("aA", ela);
-	waitKey(0);
+	//normalize and scale B channel to [0,1]
+	vector<Mat> ch;
+	split(dst, ch);
+		normalize(ch[0], ch[0], 0, 1, CV_MINMAX);
+	merge(ch, dst);
+
+	dst.convertTo(dst, CV_8U, 255);
+}
+
+void avgdist(Mat &src, Mat &dst, double scale=5.0) {
+	//average of cross-shaped neighbors filter
+	Matx33f filter(0, 0.25, 0,
+			0.25, 0, 0.25,
+			0, 0.25, 0);
+
+	src.convertTo(dst, CV_32F, 1.0/255.0);
+
+	//apply filter
+	Mat filtered;
+	filter2D(dst, filtered, CV_32F, filter);
+	normalize(abs(dst - filtered), dst, 0, 1, CV_MINMAX);
+	dst.convertTo(dst, CV_8U, 255);
 }
