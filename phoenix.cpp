@@ -16,16 +16,17 @@ using namespace boost::program_options;
 using namespace boost::filesystem;
 
 int main(int argc, char *argv[]) {
-	options_description desc("Allowed options");
+	//declare program options
+	options_description desc("USAGE: phoenix -f <path_to_file> [options]\nAllowed options");
 	desc.add_options()
-	    ("help,h", "produce help message")
-	    ("file,f", value<string>()->required(), "file")
-	    ("output,o", value<string>()->implicit_value("./"), "output")
-	    ("ela", value<int>()->implicit_value(70), "set compression level")
-	    ("hsv", value<int>()->implicit_value(0), "hsv")
-	    ("lab", value<int>()->implicit_value(0), "lab")
-	    ("borders", bool_switch()->default_value(false), "borders")
-	    ("display,d", bool_switch()->default_value(false), "display")
+	    ("help,h", "List all arguments - produce help message")
+	    ("file,f", value<string>()->required(), "Source image file")
+	    ("output,o", value<string>()->implicit_value("./"), "Output folder path")
+	    ("ela", value<int>()->implicit_value(70), "Error Level Analysis [optional resave quality]")
+	    ("hsv", value<int>()->implicit_value(0), "HSV Colorspace Histogram")
+	    ("lab", value<int>()->implicit_value(0), "Lab Colorspace Histogram")
+	    ("borders", bool_switch()->default_value(false), "Show RGB borders in histograms")
+	    ("display,d", bool_switch()->default_value(false), "Display outputs")
 	;
 
 	variables_map vm;
@@ -92,6 +93,16 @@ int main(int argc, char *argv[]) {
 
 	if(vm.count("ela")) {
 		cout << vm["ela"].as<int>() << endl;
+		Mat ela;
+		error_level_analysis(source_image, ela, vm["ela"].as<int>());
+
+		if(vm.count("output")) {
+			imwrite(output_path + "_ela.png", ela);
+		}
+
+		if(vm["display"].as<bool>()) {
+			image_list.push_back(pair<Mat, string>(ela, "Error Level Analysis"));
+		}
 	}
 
 	if(vm.count("hsv")) {

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -115,4 +116,35 @@ void lab_histogram(Mat &src, Mat &dst, bool whitebg = false) {
 	//back to 8-bit rgb
 	cvtColor(lab_histogram, lab_histogram, CV_Lab2BGR);
 	lab_histogram.convertTo(dst, CV_8U, 255);
+}
+
+void error_level_analysis(Mat &src, Mat &dst, int quality = 90) {
+	vector<uchar> buffer;
+
+    vector<int> compression_params;
+    compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
+    compression_params.push_back(quality);
+
+	imencode(".jpg", src, buffer, compression_params);
+
+	Mat resaved = imdecode(buffer, CV_LOAD_IMAGE_COLOR);
+	Mat ela = abs(src - resaved)*10;
+
+	Mat ycrcb;
+	cvtColor(ela, ycrcb, CV_BGR2YCrCb);
+
+	vector<Mat> channels;
+	split(ycrcb, channels);
+	for(int i=0; i<channels.size(); i++) {
+		//equalizeHist(channels[i], channels[i]);
+		//normalize(channels[i], channels[i], 0, 255, NORM_MINMAX);
+	}
+	//equalizeHist(channels[0], channels[0]);
+	//normalize(channels[0], channels[0], 0, 255, NORM_MINMAX);
+	merge(channels, ycrcb);
+
+	cvtColor(ycrcb,ela,CV_YCrCb2BGR);
+	namedWindow("aA");
+	imshow("aA", ela);
+	waitKey(0);
 }
