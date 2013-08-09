@@ -8,28 +8,42 @@
 using namespace std;
 using namespace cv;
 
-void rgb_borders(Mat &src) {
-	src = Mat::zeros(3, 256*256, CV_8UC3);
+/**
+ * RGB Borders
+ * 3 x (256*256) matrix with colors where one component is 255 to get the borders
+ * of the RGB colorspace
+ */
+void rgb_borders(Mat &dst) {
+	dst = Mat::zeros(3, 256*256, CV_8UC3);
 	int b = 255, g=0, r=0;
 	for(int g=0; g<256; g++) {
 		for(int r=0; r<256; r++) {
-			src.at<Vec3b>(0, g*256+r) = Vec3b(b, g, r);
+			dst.at<Vec3b>(0, g*256+r) = Vec3b(b, g, r);
 		}
 	}
 	b=0;g=255;r=0;
 	for(int b=0; b<256; b++) {
 		for(int r=0; r<256; r++) {
-			src.at<Vec3b>(1, b*256+r) = Vec3b(b, g, r);
+			dst.at<Vec3b>(1, b*256+r) = Vec3b(b, g, r);
 		}
 	}
 	b=0;g=0;r=255;
 	for(int b=0; b<256; b++) {
 		for(int g=0; g<256; g++) {
-			src.at<Vec3b>(2, b*256+g) = Vec3b(b, g, r);
+			dst.at<Vec3b>(2, b*256+g) = Vec3b(b, g, r);
 		}
 	}
 }
 
+/**
+ * HSV Histogram Analysis
+ * convert image to float and change colorspace to HSV. Count all H,S pairs and
+ * compute frequency + the total value for V for each pair. Divide the total value
+ * by the frequency and create the histogram image
+ *
+ * implementation adapted from Samuel Albrecht's GIMP plugin
+ * https://sites.google.com/site/elsamuko/forensics/hsv-analysis
+ */
 void hsv_histogram(Mat &src, Mat &dst, bool whitebg = false) {
 	Vec3f bgcolor = Vec3f(0,0,0);
 	if(whitebg) {
@@ -73,6 +87,15 @@ void hsv_histogram(Mat &src, Mat &dst, bool whitebg = false) {
 	hsv_histogram.convertTo(dst, CV_8U, 255);
 }
 
+/**
+ * Lab Histogram Analysis
+ * convert image to float and change colorspace to Lab. Count all a,b pairs and
+ * compute the frequency + total value for L for each pair. Divide & display the
+ * resulting histogram image
+ *
+ * implementation adapted from Samuel Albrecht's GIMP plugin
+ * https://sites.google.com/site/elsamuko/forensics/lab-analysis
+ */
 void lab_histogram(Mat &src, Mat &dst, bool whitebg = false) {
 	Vec3f bgcolor = Vec3f(0,0,0);
 	if(whitebg) {
@@ -82,6 +105,7 @@ void lab_histogram(Mat &src, Mat &dst, bool whitebg = false) {
 	Mat lab;
 	src.convertTo(lab, CV_32F, 1.0/255.0);
 	cvtColor(lab, lab, CV_BGR2Lab);
+	//L: (0, 100) a: (-127, 127) b: (-127, 127)
 
 	int abins = 1024, bbins = 1024;
 	//count frequencies and also sum L values
@@ -118,20 +142,39 @@ void lab_histogram(Mat &src, Mat &dst, bool whitebg = false) {
 	lab_histogram.convertTo(dst, CV_8U, 255);
 }
 
+/**
+ * Error Level Analysis
+ * encode a jpeg with a known quality (default 90) and then subtract this image
+ * from the original jpeg. Normalize the resulting image for better viewing
+ *
+ * implemented from Neal Krawetz's algorithm description
+ * http://hackerfactor.com/papers/bh-usa-07-krawetz-wp.pdf
+ * pages 16-20
+ */
 void error_level_analysis(Mat &src, Mat &dst, int quality = 90) {
 	vector<uchar> buffer;
 
     vector<int> save_params(2);
     save_params.push_back(CV_IMWRITE_JPEG_QUALITY);
     save_params.push_back(quality);
-
+    //encode as jpeg
 	imencode(".jpg", src, buffer, save_params);
 
 	Mat resaved = imdecode(buffer, CV_LOAD_IMAGE_COLOR);
-
+	//normalize the difference for better viewing
 	normalize(abs(src - resaved), dst, 0, 255, CV_MINMAX);
 }
 
+/**
+ * Luminance Gradient
+ * get image derivatives in X and Y directions using a Sobel filter. afterwards,
+ * colorize the image using the X and Y sobel components as angle in G and R channels
+ * and magnitude of the vectors as the B channel.
+ * 
+ * implemented from Neal Krawetz's algorithm description
+ * http://blackhat.com/presentations/bh-dc-08/Krawetz/Presentation/bh-dc-08-krawetz.pdf
+ * pages 60-72
+ */
 void luminance_gradient(Mat &src, Mat &dst) {
 	Mat greyscale;
 	cvtColor(src, greyscale, CV_BGR2GRAY);
@@ -168,7 +211,7 @@ void luminance_gradient(Mat &src, Mat &dst) {
 	dst.convertTo(dst, CV_8U, 255);
 }
 
-void avgdist(Mat &src, Mat &dst, double scale=5.0) {
+void average_distance(Mat &src, Mat &dst) {
 	//average of cross-shaped neighbors filter
 	Matx33f filter(0, 0.25, 0,
 			0.25, 0, 0.25,

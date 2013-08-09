@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
 	    ("lab", value<int>()->implicit_value(0), "Lab Colorspace Histogram")
 	    ("borders", bool_switch()->default_value(false), "Show RGB borders in histograms")
 	    ("lg", bool_switch()->default_value(false), "Luminance Gradient")
-	    ("avgdist", bool_switch()->default_value(false), "Avgdist")
+	    ("avgdist", bool_switch()->default_value(false), "Average Distance")
 	    ("display,d", bool_switch()->default_value(false), "Display outputs")
 	;
 
@@ -120,15 +120,15 @@ int main(int argc, char *argv[]) {
 	}
 
 	if(vm["avgdist"].as<bool>()) {
-		Mat avgdist1;
-		avgdist(source_image, avgdist1);
+		Mat avgdist;
+		average_distance(source_image, avgdist);
 
 		if(vm.count("output")) {
-			imwrite(output_path + "_lg.png", avgdist1);
+			imwrite(output_path + "_lg.png", avgdist);
 		}
 
 		if(vm["display"].as<bool>()) {
-			image_list.push_back(pair<Mat, string>(avgdist1, "Avgdist"));
+			image_list.push_back(pair<Mat, string>(avgdist, "Average Distance"));
 		}
 	}
 
