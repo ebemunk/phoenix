@@ -225,3 +225,36 @@ void average_distance(Mat &src, Mat &dst) {
 	normalize(abs(dst - filtered), dst, 0, 1, CV_MINMAX);
 	dst.convertTo(dst, CV_8U, 255);
 }
+
+void dct_madness(Mat &src) {
+	int blocksize = 8;
+	int total_blocks = (src.rows - blocksize) * (src.cols - blocksize);
+
+	Mat blocks;
+	//blocks.reserve(total_blocks);
+
+	Mat tmp_block;
+
+	cout << "ROWS: " << src.rows << endl << "COLS: " << src.cols << endl;
+
+	for(int i=0; i<src.cols-blocksize+1; i++) {
+		for(int j=0; j<src.rows-blocksize+1; j++) {
+			tmp_block = Mat(src, Rect(i,j,blocksize,blocksize)).clone();
+			tmp_block = tmp_block.reshape(1, 1).clone();
+			blocks.push_back(tmp_block);
+
+			/*
+			cout << tmp_block << endl << endl << Rect(i,j,2,2) << endl << endl;
+
+			Vec3b zero = tmp_block.at<Vec3b>(0,0);
+			Vec3b one = tmp_block.at<Vec3b>(0,1);
+			cout << endl << zero << endl << one << endl;
+
+			cout << endl << endl << "DIMS " << tmp_block.rows << " " << tmp_block.cols << endl;
+			*/
+		}
+	}
+
+	cout << "BLOCKS:" << endl << "-------------" << endl;
+	cout << "Dims: " << blocks.rows << " x " << blocks.cols;
+}

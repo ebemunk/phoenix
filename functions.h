@@ -45,3 +45,5 @@ void luminance_gradient(Mat &src, Mat &dst);
  * @param {Mat} dst Destination image
  */
 void average_distance(Mat &src, Mat &dst);
+
+void dct_madness(Mat &src);

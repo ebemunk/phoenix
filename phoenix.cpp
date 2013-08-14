@@ -28,6 +28,7 @@ int main(int argc, char *argv[]) {
 	    ("borders", bool_switch()->default_value(false), "Show RGB borders in histograms")
 	    ("lg", bool_switch()->default_value(false), "Luminance Gradient")
 	    ("avgdist", bool_switch()->default_value(false), "Average Distance")
+	    ("dct", bool_switch()->default_value(false), "DCT")
 	    ("display,d", bool_switch()->default_value(false), "Display outputs")
 	;
 
@@ -168,6 +169,10 @@ int main(int argc, char *argv[]) {
 		if(vm["display"].as<bool>()) {
 			image_list.push_back(pair<Mat, string>(lab, "Lab Histogram"));
 		}
+	}
+
+	if(vm["dct"].as<bool>()) {
+		dct_madness(source_image);
 	}
 
 	if(vm.count("display")) {
