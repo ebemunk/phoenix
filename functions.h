@@ -47,3 +47,5 @@ void luminance_gradient(Mat &src, Mat &dst);
 void average_distance(Mat &src, Mat &dst);
 
 void dct_madness(Mat &src);
+
+int estimate_jpeg_quality(const char* filename);

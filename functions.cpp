@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <vector>
 
 #include <opencv2/core/core.hpp>
@@ -257,4 +258,66 @@ void dct_madness(Mat &src) {
 
 	cout << "BLOCKS:" << endl << "-------------" << endl;
 	cout << "Dims: " << blocks.rows << " x " << blocks.cols;
+}
+
+int estimate_jpeg_quality(const char* filename) {
+	ifstream in(filename, ios::binary);
+
+	char buffer[2];
+
+	in.read(buffer, 2);
+	if(buffer[0] != (char)0xFF && buffer[1] != (char)0xD8) {
+		cout << "not jpeg" << endl;
+		return 0;
+	} else {
+		cout << "yes jpeg" << endl;
+	}
+
+	in.read(buffer, 2);
+	if(buffer[0] != (char)0xFF) {
+		cout << "yes jpeg but fucked" << endl;
+		return 0;
+	} else {
+		cout << "3rd yes" << endl;
+	}
+
+	bool compressed = false;
+	while(buffer[1] != (char)0xD9 && !compressed && in.tellg() != -1) {
+		if((int)buffer[1] < 0xD0 || (int)buffer[1] > 0xD7) {
+			char size[2];
+			in.read(size, 2);
+			unsigned short size_s = (size[0] << 8) | size[1];
+			//cout << "\t\tsize: " << size_s-2 << endl;
+			char precision[1];
+			in.read(precision, 1);
+
+			char *segdata = new char[size_s-3];
+			in.read(segdata, size_s-3);
+
+			Mat got(8,8, CV_32F);
+			if(buffer[1] == (char)0xDB) {
+				cout << "+-+-+-+-+-+-+-+-+-+" << endl;
+				for(int i=0; i<8; i++) {
+					for(int j=0; j<8; j++) {
+						got.at<float>(i, j) = segdata[i*8+j];
+					}
+				}
+				cout << got << endl;
+				cout << "+-+-+-+-+-+-+-+-+-+" << endl;
+				//cout << segdata << endl;
+			}
+		}
+
+		if(buffer[1] == (char)0xDA) {
+			compressed = true;
+		} else {
+			in.read(buffer, 2);
+			if(buffer[0] != (char)0xFF) {
+				cout << "\tcorrput" << endl;
+				return 0;
+			}
+		}
+	}
+
+	return 0;
 }

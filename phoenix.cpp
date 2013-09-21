@@ -10,6 +10,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/dynamic_bitset.hpp>
 
 #include "functions.h"
 
@@ -119,6 +120,13 @@ int main(int argc, char *argv[]) {
 		cout << "EX: " << e.what() << endl;
 		return 1;
 	}
+
+	
+	estimate_jpeg_quality(vm["file"].as<string>().c_str());
+
+	return 0;
+
+
 
 	if(vm.count("ela")) {
 		Mat ela;
