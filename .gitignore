@@ -4,3 +4,4 @@ i/
 *.sublime-project
 *.sublime-workspace
 Makefile-variables.mk
+codehelp/

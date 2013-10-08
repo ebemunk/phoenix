@@ -10,7 +10,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/dynamic_bitset.hpp>
+#include <boost/any.hpp>
 
 #include "functions.h"
 
@@ -20,10 +20,8 @@ using namespace boost::program_options;
 using namespace boost::filesystem;
 using boost::property_tree::ptree;
 
-enum analysis_type { ELA, HSV, LAB, LG, AVGDIST, DCT };
-
 struct analysis {
-	string type; //one of analysis_type enums
+	string type; //type of anaylsis
 	Mat image; //analysis image
 	string filename; //for saving
 	string title; //for display
@@ -51,6 +49,7 @@ int main(int argc, char *argv[]) {
 	    ("borders", bool_switch()->default_value(false), "Show RGB borders in histograms")
 	    ("lg", bool_switch()->default_value(false), "Luminance Gradient")
 	    ("avgdist", bool_switch()->default_value(false), "Average Distance")
+	    ("quality,q", bool_switch()->default_value(true), "Estimate JPEG Quality")
 	    ("dct", bool_switch()->default_value(false), "DCT")
 	    ("display,d", bool_switch()->default_value(false), "Display outputs")
 	    ("invoke", value<string>(), "Invoke php script after execution")
@@ -121,13 +120,6 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	
-	estimate_jpeg_quality(vm["file"].as<string>().c_str());
-
-	return 0;
-
-
-
 	if(vm.count("ela")) {
 		Mat ela;
 		error_level_analysis(source_image, ela, vm["ela"].as<int>());
@@ -174,6 +166,14 @@ int main(int argc, char *argv[]) {
 		analysis_list.push_back(make_analysis("lab", lab, lab_filename, "Lab Histogram"));
 	}
 
+	int num_qtables = 0;
+	vector<qtable> qtables;
+	vector<double> quality;
+
+	if(vm["quality"].as<bool>()) {
+		num_qtables = estimate_jpeg_quality(vm["file"].as<string>().c_str(), qtables, quality);
+	}
+
 	if(vm["dct"].as<bool>()) {
 		dct_madness(source_image);
 	}
@@ -184,6 +184,25 @@ int main(int argc, char *argv[]) {
 			string output_filepath = output_path.string() + "/" + source_path.stem().string() + "_" + it->filename;
 			imwrite(output_filepath, it->image);
 			root.put(it->type + string(".filename"), canonical(output_filepath).make_preferred().string());
+		}
+
+		if(num_qtables > 0) {
+			root.put("imagick_estimate", quality[0]);
+			root.put("hf_estimate", quality[1]);
+			for(int i=0; i<num_qtables; i++) {
+				stringstream dqt;
+				for(int j=0; j<8; j++) {
+					for(int k=0; k<8; k++) {
+						dqt << qtables[i].table.at<float>(j, k);
+						if(j*k < 48) {
+							dqt << ",";
+						}
+					}
+				}
+				stringstream tableindex;
+				tableindex << "dqt." << i;
+				root.put(tableindex.str(), dqt.str());
+			}
 		}
 
 		if(vm.count("invoke")) {

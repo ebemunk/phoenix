@@ -48,4 +48,13 @@ void average_distance(Mat &src, Mat &dst);
 
 void dct_madness(Mat &src);
 
-int estimate_jpeg_quality(const char* filename);
+struct qtable {
+	int index;
+	int precision;
+	Mat table;
+	double sum;
+	double hf_qval;
+	double im_qval;
+};
+
+int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<double> &quality_estimates);

@@ -1,13 +1,17 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <iomanip>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 using namespace std;
 using namespace cv;
+using boost::property_tree::ptree;
 
 /**
  * RGB Borders
@@ -260,64 +264,237 @@ void dct_madness(Mat &src) {
 	cout << "Dims: " << blocks.rows << " x " << blocks.cols;
 }
 
-int estimate_jpeg_quality(const char* filename) {
+struct qtable {
+	int index;
+	int precision;
+	Mat table;
+	double sum;
+	double hf_qval;
+	double im_qval;
+};
+
+int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<double> &quality_estimates) {
+	//open file and get started
 	ifstream in(filename, ios::binary);
 
+	// first two bytes must be 0xffd8 for jpeg format
 	char buffer[2];
-
 	in.read(buffer, 2);
 	if(buffer[0] != (char)0xFF && buffer[1] != (char)0xD8) {
 		cout << "not jpeg" << endl;
-		return 0;
-	} else {
-		cout << "yes jpeg" << endl;
+		return -2;
 	}
-
+	/*cout << "First Two: " << endl;
+	cout << "\t" << hex << (unsigned short)buffer[0] << endl;
+	cout << "\t" << hex << (unsigned short)buffer[1] << endl;*/
+	
 	in.read(buffer, 2);
 	if(buffer[0] != (char)0xFF) {
-		cout << "yes jpeg but fucked" << endl;
-		return 0;
-	} else {
-		cout << "3rd yes" << endl;
+		cout << "jpeg but corrupt?" << endl;
+		return -1;
 	}
-
+	/*cout << "Third: ";
+	cout << "\t" << hex << (unsigned short)buffer[0] << endl;*/
+	vector<char*> dqt_tables;
+	/**
+	 * loop until:
+	 * - end of file
+	 * - end of image 0xd9
+	 * - hit image data (no headers after image data starts)
+	 */
 	bool compressed = false;
 	while(buffer[1] != (char)0xD9 && !compressed && in.tellg() != -1) {
-		if((int)buffer[1] < 0xD0 || (int)buffer[1] > 0xD7) {
+		/*cout << "Marker:\t" << hex << (unsigned short)buffer[1] << endl;*/
+		//check that segment marker is not a restart marker
+		if(buffer[1] < (char)0xD0 || buffer[1] > (char)0xD7) {
+			//next two bytes are the size of the segment
 			char size[2];
 			in.read(size, 2);
-			unsigned short size_s = (size[0] << 8) | size[1];
-			//cout << "\t\tsize: " << size_s-2 << endl;
-			char precision[1];
-			in.read(precision, 1);
+			/*cout << "Size:\t" << hex << (unsigned short)size[0] << endl << "\t" << hex << (unsigned short)size[1] << endl;*/
+			//convert to short
+			unsigned short size_s = size[0];
+			size_s <<= 8;
+			size_s |= size[1] & 0x00FF; //this last bit mask was what was missing all along! why this way?
 
-			char *segdata = new char[size_s-3];
-			in.read(segdata, size_s-3);
+			/*cout << "+-+-+-+-+-+-+-+-+-+" << endl;
+			cout << "Size: " << dec << size_s << endl;*/
 
-			Mat got(8,8, CV_32F);
+			//read segment
+			//segment size includes the previous two size bytes (i think)
+			char *segdata = new char[size_s-2];
+			in.read(segdata, size_s-2);
+
+			//DQT marker 0xdb
 			if(buffer[1] == (char)0xDB) {
-				cout << "+-+-+-+-+-+-+-+-+-+" << endl;
-				for(int i=0; i<8; i++) {
-					for(int j=0; j<8; j++) {
-						got.at<float>(i, j) = segdata[i*8+j];
-					}
-				}
-				cout << got << endl;
-				cout << "+-+-+-+-+-+-+-+-+-+" << endl;
-				//cout << segdata << endl;
+				dqt_tables.push_back(segdata);
 			}
+			/*cout << "+-+-+-+-+-+-+-+-+-+" << endl;*/
 		}
 
+		//if we see start of scan (SOS 0xda) that means its just image data from here on
 		if(buffer[1] == (char)0xDA) {
 			compressed = true;
+			/*cout << "compressed hit" << endl;*/
 		} else {
+			//read the next two bytes, first one must be 0xff start of segment
 			in.read(buffer, 2);
-			if(buffer[0] != (char)0xFF) {
-				cout << "\tcorrput" << endl;
-				return 0;
+			if(buffer[0] != (char)0xFF) { //something wrong with this jpeg
+				cout << "jpeg corrupt midway?" << endl;
+				return -1;
 			}
+		}
+	} //file reading complete
+
+	Mat zigzag8 = (Mat_<int>(64, 1) << 0, 1, 5, 6, 14, 15, 27, 28, 2, 4, 7, 13, 16, 26, 29, 42, 3, 8, 12, 17, 25, 30, 41, 43, 9, 11, 18, 24, 31, 40, 44, 53, 10, 19, 23, 32, 39, 45, 52, 54, 20, 22, 33, 38, 46, 51, 55, 60, 21, 34, 37, 47, 50, 56, 59, 61, 35, 36, 48, 49, 57, 58, 62, 63);
+	
+	/*cout << "dqt_tables.size(): " << dqt_tables.size() << endl;*/
+
+	//vector<qtable> qtables;
+	for(int k=0; k<dqt_tables.size(); k++) {
+		Mat dqt(8,8, CV_32F);
+		//precision and index is packed into this first byte
+		char precision_index = dqt_tables[k][0];
+		int precision, index;
+		index = precision_index & 0x0F; //first 4 bits
+		precision = (precision_index & 0xF0) & 0x0F; //last 4 bits
+
+		//load the rest of the segment data to DQT matrix - in zigzag order
+		for(int i=0; i<8; i++) {
+			for(int j=0; j<8; j++) {
+				//dqt.at<float>(i, j) = segdata[i*8+j]; //non-zigzag order
+				dqt.at<float>(i, j) = dqt_tables[k][zigzag8.at<int>(i*8+j)+1];
+			}
+		}
+		CvScalar sum = cv::sum(dqt);
+		//Hacker Factor quality estimate for table
+		double hf_qval = 100 - ((sum.val[0] - dqt.at<float>(0, 0)) / 63.0);
+		//ImageMagick initial qval
+		double im_qval;
+		if(k==1) {
+			im_qval = dqt_tables[k][2] + dqt_tables[k][53];
+		} else {
+			im_qval = dqt_tables[k][0] + dqt_tables[k][63];
+		}
+
+		//push it to vector
+		qtable table = {
+			index, precision, dqt, sum.val[0], hf_qval, im_qval
+		};
+		qtables.push_back(table);
+	}
+
+	double hf_quality, imagick_quality;
+	int num_qtables = 0;
+
+	if(dqt_tables.size() == 1) {
+		num_qtables = 1;
+		//hackerfactor estimate
+		hf_quality = qtables[0].hf_qval;
+
+		//imagemagick estimation tables for single-dqt jpgs
+		ssize_t
+		hash[101] = {
+			510, 505, 422, 380, 355, 338, 326, 318, 311, 305,
+			300, 297, 293, 291, 288, 286, 284, 283, 281, 280,
+			279, 278, 277, 273, 262, 251, 243, 233, 225, 218,
+			211, 205, 198, 193, 186, 181, 177, 172, 168, 164,
+			158, 156, 152, 148, 145, 142, 139, 136, 133, 131,
+			129, 126, 123, 120, 118, 115, 113, 110, 107, 105,
+			102, 100, 97, 94, 92, 89, 87, 83, 81, 79,
+			76, 74, 70, 68, 66, 63, 61, 57, 55, 52,
+			50, 48, 44, 42, 39, 37, 34, 31, 29, 26,
+			24, 21, 18, 16, 13, 11, 8, 6, 3, 2,
+			0
+		},
+		sums[101] = {
+			16320, 16315, 15946, 15277, 14655, 14073, 13623, 13230, 12859,
+			12560, 12240, 11861, 11456, 11081, 10714, 10360, 10027, 9679,
+			9368, 9056, 8680, 8331, 7995, 7668, 7376, 7084, 6823,
+			6562, 6345, 6125, 5939, 5756, 5571, 5421, 5240, 5086,
+			4976, 4829, 4719, 4616, 4463, 4393, 4280, 4166, 4092,
+			3980, 3909, 3835, 3755, 3688, 3621, 3541, 3467, 3396,
+			3323, 3247, 3170, 3096, 3021, 2952, 2874, 2804, 2727,
+			2657, 2583, 2509, 2437, 2362, 2290, 2211, 2136, 2068,
+			1996, 1915, 1858, 1773, 1692, 1620, 1552, 1477, 1398,
+			1326, 1251, 1179, 1109, 1031, 961, 884, 814, 736,
+			667, 592, 518, 441, 369, 292, 221, 151, 86,
+			64, 0
+		};
+
+		//imagemagick estimate
+		double sum = qtables[0].sum;
+		double qvalue = qtables[0].im_qval;
+		for (int i=0; i < 100; i++) {
+			if ((qvalue < hash[i]) && (sum < sums[i])) {
+				continue;
+			}
+			if (((qvalue <= hash[i]) && (sum <= sums[i])) || (i >= 50)) {
+				imagick_quality = i + 1;
+			}
+			break;
+        }
+	} else { // 2 or 3
+		if(dqt_tables.size() == 2) { //this means Cr and Cb tables are the same
+			num_qtables = 2;
+			qtables.push_back(qtables[1]);
+		} else {
+			num_qtables = 3;
+		}
+
+		//hackerfactor estimate
+		double q0, q1, q2;
+		q0 = qtables[0].hf_qval;
+		q1 = qtables[1].hf_qval;
+		q2 = qtables[2].hf_qval;
+		double diff = (abs(q0 - q1) + abs(q0 - q2)) * 0.49;
+		hf_quality = (q0 + q1 + q2) / 3.0 + diff;
+
+		//imagemagick estimation tables for multi-dqt jpgs
+		ssize_t
+		hash[101] = {
+			1020, 1015, 932, 848, 780, 735, 702, 679, 660, 645,
+			632, 623, 613, 607, 600, 594, 589, 585, 581, 571,
+			555, 542, 529, 514, 494, 474, 457, 439, 424, 410,
+			397, 386, 373, 364, 351, 341, 334, 324, 317, 309,
+			299, 294, 287, 279, 274, 267, 262, 257, 251, 247,
+			243, 237, 232, 227, 222, 217, 213, 207, 202, 198,
+			192, 188, 183, 177, 173, 168, 163, 157, 153, 148,
+			143, 139, 132, 128, 125, 119, 115, 108, 104, 99,
+			94, 90, 84, 79, 74, 70, 64, 59, 55, 49,
+			45, 40, 34, 30, 25, 20, 15, 11, 6, 4,
+			0
+		},
+		sums[101] = {
+			32640, 32635, 32266, 31495, 30665, 29804, 29146, 28599, 28104,
+			27670, 27225, 26725, 26210, 25716, 25240, 24789, 24373, 23946,
+			23572, 22846, 21801, 20842, 19949, 19121, 18386, 17651, 16998,
+			16349, 15800, 15247, 14783, 14321, 13859, 13535, 13081, 12702,
+			12423, 12056, 11779, 11513, 11135, 10955, 10676, 10392, 10208,
+			9928, 9747, 9564, 9369, 9193, 9017, 8822, 8639, 8458,
+			8270, 8084, 7896, 7710, 7527, 7347, 7156, 6977, 6788,
+			6607, 6422, 6236, 6054, 5867, 5684, 5495, 5305, 5128,
+			4945, 4751, 4638, 4442, 4248, 4065, 3888, 3698, 3509,
+			3326, 3139, 2957, 2775, 2586, 2405, 2216, 2037, 1846,
+			1666, 1483, 1297, 1109, 927, 735, 554, 375, 201,
+			128, 0
+		};
+
+		//imagemagick estimate
+		double sum = qtables[0].sum + qtables[1].sum;
+		double qvalue = qtables[0].im_qval + qtables[1].im_qval;
+		for (int i=0; i < 100; i++) {
+			if ((qvalue < hash[i]) && (sum < sums[i])) {
+				continue;
+			}
+			if (((qvalue <= hash[i]) && (sum <= sums[i])) || (i >= 50)) {
+				imagick_quality = i + 1;
+			}
+			break;
 		}
 	}
 
-	return 0;
+	quality_estimates.push_back(imagick_quality);
+	quality_estimates.push_back(hf_quality);
+
+	return num_qtables;
 }
