@@ -12,6 +12,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/any.hpp>
 
+#include "structs.h"
 #include "functions.h"
 
 using namespace std;
@@ -20,17 +21,6 @@ using namespace boost::program_options;
 using namespace boost::filesystem;
 using boost::property_tree::ptree;
 
-struct analysis {
-	string type; //type of anaylsis
-	Mat image; //analysis image
-	string filename; //for saving
-	string title; //for display
-};
-
-analysis make_analysis(string type, Mat image, string filename, string title) {
-	analysis a = {type, image, filename, title};
-	return a;
-}
 
 int main(int argc, char *argv[]) {
 	/*cout << "HELO: " << endl;
@@ -123,19 +113,19 @@ int main(int argc, char *argv[]) {
 	if(vm.count("ela")) {
 		Mat ela;
 		error_level_analysis(source_image, ela, vm["ela"].as<int>());
-		analysis_list.push_back(make_analysis("ela", ela, "ela.png", "Error Level Analysis"));
+		analysis_list.push_back(analysis {"ela", ela, "ela.png", "Error Level Analysis"});
 	}
 
 	if(vm["lg"].as<bool>()) {
 		Mat lg;
 		luminance_gradient(source_image, lg);
-		analysis_list.push_back(make_analysis("lg", lg, "lg.png", "Luminance Gradient"));
+		analysis_list.push_back(analysis{"lg", lg, "lg.png", "Luminance Gradient"});
 	}
 
 	if(vm["avgdist"].as<bool>()) {
 		Mat avgdist;
 		average_distance(source_image, avgdist);
-		analysis_list.push_back(make_analysis("avgdist", avgdist, "avgdist.png", "Average Distance"));
+		analysis_list.push_back(analysis{"avgdist", avgdist, "avgdist.png", "Average Distance"});
 	}
 
 	if(vm.count("hsv")) {
@@ -149,7 +139,7 @@ int main(int argc, char *argv[]) {
 			hsv_histogram(source_image, hsv, vm["hsv"].as<int>());
 			hsv_filename = "hsv.png";
 		}
-		analysis_list.push_back(make_analysis("hsv", hsv, hsv_filename, "HSV Histogram"));
+		analysis_list.push_back(analysis{"hsv", hsv, hsv_filename, "HSV Histogram"});
 	}
 
 	if(vm.count("lab")) {
@@ -163,7 +153,7 @@ int main(int argc, char *argv[]) {
 			lab_histogram(source_image, lab, vm["lab"].as<int>());
 			lab_filename = "lab.png";
 		}
-		analysis_list.push_back(make_analysis("lab", lab, lab_filename, "Lab Histogram"));
+		analysis_list.push_back(analysis{"lab", lab, lab_filename, "Lab Histogram"});
 	}
 
 	int num_qtables = 0;

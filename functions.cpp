@@ -9,15 +9,17 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include "structs.h"
+
 using namespace std;
 using namespace cv;
 using boost::property_tree::ptree;
 
-/**
- * RGB Borders
- * 3 x (256*256) matrix with colors where one component is 255 to get the borders
- * of the RGB colorspace
- */
+/*
+	RGB Borders
+	3 x (256*256) matrix with colors where one component is 255 to get the borders
+	of the RGB colorspace
+*/
 void rgb_borders(Mat &dst) {
 	dst = Mat::zeros(3, 256*256, CV_8UC3);
 	int b = 255, g=0, r=0;
@@ -40,15 +42,15 @@ void rgb_borders(Mat &dst) {
 	}
 }
 
-/**
- * HSV Histogram Analysis
- * convert image to float and change colorspace to HSV. Count all H,S pairs and
- * compute frequency + the total value for V for each pair. Divide the total value
- * by the frequency and create the histogram image
- *
- * implementation adapted from Samuel Albrecht's GIMP plugin
- * https://sites.google.com/site/elsamuko/forensics/hsv-analysis
- */
+/*
+	HSV Histogram Analysis
+	convert image to float and change colorspace to HSV. Count all H,S pairs and
+	compute frequency + the total value for V for each pair. Divide the total value
+	by the frequency and create the histogram image
+
+	implementation adapted from Samuel Albrecht's GIMP plugin
+	https://sites.google.com/site/elsamuko/forensics/hsv-analysis
+*/
 void hsv_histogram(Mat &src, Mat &dst, bool whitebg = false) {
 	Vec3f bgcolor = Vec3f(0,0,0);
 	if(whitebg) {
@@ -92,15 +94,15 @@ void hsv_histogram(Mat &src, Mat &dst, bool whitebg = false) {
 	hsv_histogram.convertTo(dst, CV_8U, 255);
 }
 
-/**
- * Lab Histogram Analysis
- * convert image to float and change colorspace to Lab. Count all a,b pairs and
- * compute the frequency + total value for L for each pair. Divide & display the
- * resulting histogram image
- *
- * implementation adapted from Samuel Albrecht's GIMP plugin
- * https://sites.google.com/site/elsamuko/forensics/lab-analysis
- */
+/*
+	Lab Histogram Analysis
+	convert image to float and change colorspace to Lab. Count all a,b pairs and
+	compute the frequency + total value for L for each pair. Divide & display the
+	resulting histogram image
+
+	implementation adapted from Samuel Albrecht's GIMP plugin
+	https://sites.google.com/site/elsamuko/forensics/lab-analysis
+*/
 void lab_histogram(Mat &src, Mat &dst, bool whitebg = false) {
 	Vec3f bgcolor = Vec3f(0,0,0);
 	if(whitebg) {
@@ -147,15 +149,15 @@ void lab_histogram(Mat &src, Mat &dst, bool whitebg = false) {
 	lab_histogram.convertTo(dst, CV_8U, 255);
 }
 
-/**
- * Error Level Analysis
- * encode a jpeg with a known quality (default 90) and then subtract this image
- * from the original jpeg. Normalize the resulting image for better viewing
- *
- * implemented from Neal Krawetz's algorithm description
- * http://hackerfactor.com/papers/bh-usa-07-krawetz-wp.pdf
- * pages 16-20
- */
+/*
+	Error Level Analysis
+	encode a jpeg with a known quality (default 90) and then subtract this image
+	from the original jpeg. Normalize the resulting image for better viewing
+
+	implemented from Neal Krawetz's algorithm description
+	http://hackerfactor.com/papers/bh-usa-07-krawetz-wp.pdf
+	pages 16-20
+*/
 void error_level_analysis(Mat &src, Mat &dst, int quality = 90) {
 	vector<uchar> buffer;
 
@@ -170,16 +172,16 @@ void error_level_analysis(Mat &src, Mat &dst, int quality = 90) {
 	normalize(abs(src - resaved), dst, 0, 255, CV_MINMAX);
 }
 
-/**
- * Luminance Gradient
- * get image derivatives in X and Y directions using a Sobel filter. afterwards,
- * colorize the image using the X and Y sobel components as angle in G and R channels
- * and magnitude of the vectors as the B channel.
- * 
- * implemented from Neal Krawetz's algorithm description
- * http://blackhat.com/presentations/bh-dc-08/Krawetz/Presentation/bh-dc-08-krawetz.pdf
- * pages 60-72
- */
+/*
+	Luminance Gradient
+	get image derivatives in X and Y directions using a Sobel filter. afterwards,
+	colorize the image using the X and Y sobel components as angle in G and R channels
+	and magnitude of the vectors as the B channel.
+
+	implemented from Neal Krawetz's algorithm description
+	http://blackhat.com/presentations/bh-dc-08/Krawetz/Presentation/bh-dc-08-krawetz.pdf
+	pages 60-72
+*/
 void luminance_gradient(Mat &src, Mat &dst) {
 	Mat greyscale;
 	cvtColor(src, greyscale, CV_BGR2GRAY);
@@ -216,6 +218,11 @@ void luminance_gradient(Mat &src, Mat &dst) {
 	dst.convertTo(dst, CV_8U, 255);
 }
 
+/*
+	Turn all pixels into the average of the magnitude of its cross-shaped neighbors.
+
+	implemented from https://infohost.nmt.edu/~schlake/ela/src/hfalg.c
+*/
 void average_distance(Mat &src, Mat &dst) {
 	//average of cross-shaped neighbors filter
 	Matx33f filter(0, 0.25, 0,
@@ -231,48 +238,16 @@ void average_distance(Mat &src, Mat &dst) {
 	dst.convertTo(dst, CV_8U, 255);
 }
 
-void dct_madness(Mat &src) {
-	int blocksize = 8;
-	int total_blocks = (src.rows - blocksize) * (src.cols - blocksize);
+/*
+	Ready JPEG file contents and extract DQTs (Discrete Quantization Tables), then
+	estimate the last save quality using methods from Hackerfactor and Imagemagick
 
-	Mat blocks;
-	//blocks.reserve(total_blocks);
+	uses estimation method in Neal Krawetz's jpegquality tool
+	http://www.hackerfactor.com/src/jpegquality.c
 
-	Mat tmp_block;
-
-	cout << "ROWS: " << src.rows << endl << "COLS: " << src.cols << endl;
-
-	for(int i=0; i<src.cols-blocksize+1; i++) {
-		for(int j=0; j<src.rows-blocksize+1; j++) {
-			tmp_block = Mat(src, Rect(i,j,blocksize,blocksize)).clone();
-			tmp_block = tmp_block.reshape(1, 1).clone();
-			blocks.push_back(tmp_block);
-
-			/*
-			cout << tmp_block << endl << endl << Rect(i,j,2,2) << endl << endl;
-
-			Vec3b zero = tmp_block.at<Vec3b>(0,0);
-			Vec3b one = tmp_block.at<Vec3b>(0,1);
-			cout << endl << zero << endl << one << endl;
-
-			cout << endl << endl << "DIMS " << tmp_block.rows << " " << tmp_block.cols << endl;
-			*/
-		}
-	}
-
-	cout << "BLOCKS:" << endl << "-------------" << endl;
-	cout << "Dims: " << blocks.rows << " x " << blocks.cols;
-}
-
-struct qtable {
-	int index;
-	int precision;
-	Mat table;
-	double sum;
-	double hf_qval;
-	double im_qval;
-};
-
+	also uses estimation tables from Imagemagick codebase
+	http://trac.imagemagick.org/browser/ImageMagick/trunk/coders/jpeg.c
+*/
 int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<double> &quality_estimates) {
 	//open file and get started
 	ifstream in(filename, ios::binary);
@@ -345,11 +320,10 @@ int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<
 		}
 	} //file reading complete
 
+	/*TODO: refactor above routine to its own function*/
 	Mat zigzag8 = (Mat_<int>(64, 1) << 0, 1, 5, 6, 14, 15, 27, 28, 2, 4, 7, 13, 16, 26, 29, 42, 3, 8, 12, 17, 25, 30, 41, 43, 9, 11, 18, 24, 31, 40, 44, 53, 10, 19, 23, 32, 39, 45, 52, 54, 20, 22, 33, 38, 46, 51, 55, 60, 21, 34, 37, 47, 50, 56, 59, 61, 35, 36, 48, 49, 57, 58, 62, 63);
 	
-	/*cout << "dqt_tables.size(): " << dqt_tables.size() << endl;*/
-
-	//vector<qtable> qtables;
+	//loop over extracted files and prepare to estimate quality
 	for(int k=0; k<dqt_tables.size(); k++) {
 		Mat dqt(8,8, CV_32F);
 		//precision and index is packed into this first byte
@@ -386,6 +360,7 @@ int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<
 	double hf_quality, imagick_quality;
 	int num_qtables = 0;
 
+	//jpeg with only 1 quantization table
 	if(dqt_tables.size() == 1) {
 		num_qtables = 1;
 		//hackerfactor estimate
@@ -433,7 +408,7 @@ int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<
 			}
 			break;
         }
-	} else { // 2 or 3
+	} else { // 2 or 3 quantization tables
 		if(dqt_tables.size() == 2) { //this means Cr and Cb tables are the same
 			num_qtables = 2;
 			qtables.push_back(qtables[1]);
@@ -497,4 +472,37 @@ int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<
 	quality_estimates.push_back(hf_quality);
 
 	return num_qtables;
+}
+
+void dct_madness(Mat &src) {
+	int blocksize = 8;
+	int total_blocks = (src.rows - blocksize) * (src.cols - blocksize);
+
+	Mat blocks;
+	//blocks.reserve(total_blocks);
+
+	Mat tmp_block;
+
+	cout << "ROWS: " << src.rows << endl << "COLS: " << src.cols << endl;
+
+	for(int i=0; i<src.cols-blocksize+1; i++) {
+		for(int j=0; j<src.rows-blocksize+1; j++) {
+			tmp_block = Mat(src, Rect(i,j,blocksize,blocksize)).clone();
+			tmp_block = tmp_block.reshape(1, 1).clone();
+			blocks.push_back(tmp_block);
+
+			/*
+			cout << tmp_block << endl << endl << Rect(i,j,2,2) << endl << endl;
+
+			Vec3b zero = tmp_block.at<Vec3b>(0,0);
+			Vec3b one = tmp_block.at<Vec3b>(0,1);
+			cout << endl << zero << endl << one << endl;
+
+			cout << endl << endl << "DIMS " << tmp_block.rows << " " << tmp_block.cols << endl;
+			*/
+		}
+	}
+
+	cout << "BLOCKS:" << endl << "-------------" << endl;
+	cout << "Dims: " << blocks.rows << " x " << blocks.cols;
 }
