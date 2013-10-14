@@ -23,10 +23,6 @@ using boost::property_tree::ptree;
 
 
 int main(int argc, char *argv[]) {
-	/*cout << "HELO: " << endl;
-	cout << system("php C:\\wamp\\www\\testmysql.php") << endl;
-	cout << "AFTER: " << endl;
-	return 0;*/
 	//declare program options
 	options_description desc("USAGE: phoenix -f <path_to_file> [options]\nAllowed options");
 	desc.add_options()
@@ -110,11 +106,21 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	cout << "YENI BASLIORUZ" << endl;
+	namedWindow("a");
+	imshow("a", source_image);
+	waitKey(0);
+
 	if(vm.count("ela")) {
 		Mat ela;
 		error_level_analysis(source_image, ela, vm["ela"].as<int>());
 		analysis_list.push_back(analysis {"ela", ela, "ela.png", "Error Level Analysis"});
 	}
+
+	cout << "ELA" << endl;
+	namedWindow("a");
+	imshow("a", source_image);
+	waitKey(0);
 
 	if(vm["lg"].as<bool>()) {
 		Mat lg;
@@ -122,11 +128,21 @@ int main(int argc, char *argv[]) {
 		analysis_list.push_back(analysis{"lg", lg, "lg.png", "Luminance Gradient"});
 	}
 
+	cout << "lg" << endl;
+	namedWindow("a");
+	imshow("a", source_image);
+	waitKey(0);
+
 	if(vm["avgdist"].as<bool>()) {
 		Mat avgdist;
 		average_distance(source_image, avgdist);
 		analysis_list.push_back(analysis{"avgdist", avgdist, "avgdist.png", "Average Distance"});
 	}
+
+	cout << "avgdist" << endl;
+	namedWindow("a");
+	imshow("a", source_image);
+	waitKey(0);
 
 	if(vm.count("hsv")) {
 		Mat hsv;
@@ -142,6 +158,12 @@ int main(int argc, char *argv[]) {
 		analysis_list.push_back(analysis{"hsv", hsv, hsv_filename, "HSV Histogram"});
 	}
 
+
+	cout << "hsv" << endl;
+	namedWindow("a");
+	imshow("a", source_image);
+	waitKey(0);
+
 	if(vm.count("lab")) {
 		Mat lab;
 		string lab_filename;
@@ -156,6 +178,12 @@ int main(int argc, char *argv[]) {
 		analysis_list.push_back(analysis{"lab", lab, lab_filename, "Lab Histogram"});
 	}
 
+
+	cout << "lab" << endl;
+	namedWindow("a");
+	imshow("a", source_image);
+	waitKey(0);
+
 	int num_qtables = 0;
 	vector<qtable> qtables;
 	vector<double> quality;
@@ -164,16 +192,30 @@ int main(int argc, char *argv[]) {
 		num_qtables = estimate_jpeg_quality(vm["file"].as<string>().c_str(), qtables, quality);
 	}
 
+
+	cout << "quality" << endl;
+	namedWindow("a");
+	imshow("a", source_image);
+	waitKey(0);
+
 	if(vm["dct"].as<bool>()) {
 		dct_madness(source_image);
 	}
+
+
+	cout << "dct" << endl;
+	namedWindow("a");
+	imshow("a", source_image);
+	waitKey(0);
 
 	if(vm.count("output")) {
 		ptree root;
 		for(vector<analysis>::iterator it = analysis_list.begin(); it != analysis_list.end(); ++it) {
 			string output_filepath = output_path.string() + "/" + source_path.stem().string() + "_" + it->filename;
 			imwrite(output_filepath, it->image);
-			root.put(it->type + string(".filename"), canonical(output_filepath).make_preferred().string());
+			string filepath = canonical(output_filepath).make_preferred().string();
+			// boost::algorithm::replace_all(filepath, ".", "\\.");
+			root.put(it->type + string(".filename"), filepath);
 		}
 
 		if(num_qtables > 0) {
@@ -210,6 +252,12 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+
+	cout << "output" << endl;
+	namedWindow("a");
+	imshow("a", source_image);
+	waitKey(0);
+	
 	if(vm["display"].as<bool>()) {
 		for(vector<analysis>::iterator it = analysis_list.begin(); it != analysis_list.end(); ++it) {
 			namedWindow(it->title);
