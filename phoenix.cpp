@@ -4,13 +4,13 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/any.hpp>
+
+#include <chrono>
 
 #include "structs.h"
 #include "functions.h"
@@ -20,7 +20,6 @@ using namespace cv;
 using namespace boost::program_options;
 using namespace boost::filesystem;
 using boost::property_tree::ptree;
-
 
 int main(int argc, char *argv[]) {
 	//declare program options
@@ -32,13 +31,14 @@ int main(int argc, char *argv[]) {
 	    ("ela", value<int>()->implicit_value(70), "Error Level Analysis [optional resave quality]")
 	    ("hsv", value<int>()->implicit_value(0), "HSV Colorspace Histogram")
 	    ("lab", value<int>()->implicit_value(0), "Lab Colorspace Histogram")
-	    ("borders", bool_switch()->default_value(false), "Show RGB borders in histograms")
+	    // ("borders", bool_switch()->default_value(false), "Show RGB borders in histograms")
 	    ("lg", bool_switch()->default_value(false), "Luminance Gradient")
 	    ("avgdist", bool_switch()->default_value(false), "Average Distance")
 	    ("quality,q", bool_switch()->default_value(true), "Estimate JPEG Quality")
-	    ("dct", bool_switch()->default_value(false), "DCT")
+	    // ("dct", bool_switch()->default_value(false), "DCT")
 	    ("display,d", bool_switch()->default_value(false), "Display outputs")
 	    ("invoke", value<string>(), "Invoke php script after execution")
+	    ("verbose,v", bool_switch()->default_value(false), "Verbose (debug) mode")
 	;
 
 	variables_map vm;
@@ -75,9 +75,6 @@ int main(int argc, char *argv[]) {
 	path source_path;
 	path output_path;
 	Mat source_image;
-	vector<pair<Mat, string> > image_list;
-
-	vector<analysis> analysis_list;
 
 	try { //check and try to open source image file (-f)
 		if(!exists(vm["file"].as<string>())) {
@@ -106,83 +103,158 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	cout << "YENI BASLIORUZ" << endl;
-	namedWindow("a");
-	imshow("a", source_image);
-	waitKey(0);
+	if(vm["verbose"].as<bool>()) {
+		cout << "DEBUG: Image Loaded. Ready to go..." << endl;
+		system("pause");
+	}
+
+	ptree root;
 
 	if(vm.count("ela")) {
+		if(vm["verbose"].as<bool>()) {
+			cout << "DEBUG: ELA Starting..." << endl;
+			system("pause");
+		}
+
 		Mat ela;
 		error_level_analysis(source_image, ela, vm["ela"].as<int>());
-		analysis_list.push_back(analysis {"ela", ela, "ela.png", "Error Level Analysis"});
-	}
+		if(vm.count("output")) {
+			string output_filepath = output_path.string() + "/" + source_path.stem().string() + "_ela.png";
+			imwrite(output_filepath, ela);
 
-	cout << "ELA" << endl;
-	namedWindow("a");
-	imshow("a", source_image);
-	waitKey(0);
+			string filepath = canonical(output_filepath).make_preferred().string();
+			root.put("ela.filename", filepath);
+		}
+		
+		if(vm["display"].as<bool>()) {
+			namedWindow("Error Level Analysis");
+			imshow("Error Level Analysis", ela);
+		} else {
+			ela.release();
+		}
+
+		if(vm["verbose"].as<bool>()) {
+			cout << "DEBUG: ELA Finished." << endl;
+			system("pause");
+		}
+	}
 
 	if(vm["lg"].as<bool>()) {
+		if(vm["verbose"].as<bool>()) {
+			cout << "DEBUG: LG Starting..." << endl;
+			system("pause");
+		}
+
 		Mat lg;
 		luminance_gradient(source_image, lg);
-		analysis_list.push_back(analysis{"lg", lg, "lg.png", "Luminance Gradient"});
-	}
+		if(vm.count("output")) {
+			string output_filepath = output_path.string() + "/" + source_path.stem().string() + "_lg.png";
+			imwrite(output_filepath, lg);
 
-	cout << "lg" << endl;
-	namedWindow("a");
-	imshow("a", source_image);
-	waitKey(0);
+			string filepath = canonical(output_filepath).make_preferred().string();
+			root.put("lg.filename", filepath);
+		}
+		
+		if(vm["display"].as<bool>()) {
+			namedWindow("Luminance Gradient");
+			imshow("Luminance Gradient", lg);
+		} else {
+			lg.release();
+		}
+
+		if(vm["verbose"].as<bool>()) {
+			cout << "DEBUG: LG Finished." << endl;
+			system("pause");
+		}
+	}
 
 	if(vm["avgdist"].as<bool>()) {
+		if(vm["verbose"].as<bool>()) {
+			cout << "DEBUG: Avgdist Starting..." << endl;
+			system("pause");
+		}
+
 		Mat avgdist;
 		average_distance(source_image, avgdist);
-		analysis_list.push_back(analysis{"avgdist", avgdist, "avgdist.png", "Average Distance"});
-	}
+		if(vm.count("output")) {
+			string output_filepath = output_path.string() + "/" + source_path.stem().string() + "_avgdist.png";
+			imwrite(output_filepath, avgdist);
 
-	cout << "avgdist" << endl;
-	namedWindow("a");
-	imshow("a", source_image);
-	waitKey(0);
+			string filepath = canonical(output_filepath).make_preferred().string();
+			root.put("avgdist.filename", filepath);
+		}
+		
+		if(vm["display"].as<bool>()) {
+			namedWindow("Average Distance");
+			imshow("Average Distance", avgdist);
+		} else {
+			avgdist.release();
+		}
+
+		if(vm["verbose"].as<bool>()) {
+			cout << "DEBUG: Avgdist Finished." << endl;
+			system("pause");
+		}
+	}
 
 	if(vm.count("hsv")) {
-		Mat hsv;
-		string hsv_filename;
-		if(vm["borders"].as<bool>()) {
-			Mat rgb;
-			rgb_borders(rgb);
-			hsv_histogram(rgb, hsv, vm["hsv"].as<int>());
-		} else {
-			hsv_histogram(source_image, hsv, vm["hsv"].as<int>());
-			hsv_filename = "hsv.png";
+		if(vm["verbose"].as<bool>()) {
+			cout << "DEBUG: HSV Starting..." << endl;
+			system("pause");
 		}
-		analysis_list.push_back(analysis{"hsv", hsv, hsv_filename, "HSV Histogram"});
+
+		Mat hsv;
+		hsv_histogram(source_image, hsv, vm["hsv"].as<int>());
+
+		if(vm.count("output")) {
+			string output_filepath = output_path.string() + "/" + source_path.stem().string() + "_hsv.png";
+			imwrite(output_filepath, hsv);
+
+			string filepath = canonical(output_filepath).make_preferred().string();
+			root.put("hsv.filename", filepath);
+		}
+		
+		if(vm["display"].as<bool>()) {
+			namedWindow("HSV Histrogram");
+			imshow("HSV Histogram", hsv);
+		} else {
+			hsv.release();
+		}
+
+		if(vm["verbose"].as<bool>()) {
+			cout << "DEBUG: HSV Finished." << endl;
+			system("pause");
+		}
 	}
-
-
-	cout << "hsv" << endl;
-	namedWindow("a");
-	imshow("a", source_image);
-	waitKey(0);
 
 	if(vm.count("lab")) {
-		Mat lab;
-		string lab_filename;
-		if(vm["borders"].as<bool>()) {
-			Mat rgb;
-			rgb_borders(rgb);
-			lab_histogram(rgb, lab, vm["lab"].as<int>());
-		} else {
-			lab_histogram(source_image, lab, vm["lab"].as<int>());
-			lab_filename = "lab.png";
+		if(vm["verbose"].as<bool>()) {
+			cout << "DEBUG: Lab Starting..." << endl;
+			system("pause");
 		}
-		analysis_list.push_back(analysis{"lab", lab, lab_filename, "Lab Histogram"});
+
+		Mat lab;
+		lab_histogram_fast(source_image, lab, vm["lab"].as<int>());
+		if(vm.count("output")) {
+			string output_filepath = output_path.string() + "/" + source_path.stem().string() + "_lab.png";
+			imwrite(output_filepath, lab);
+
+			string filepath = canonical(output_filepath).make_preferred().string();
+			root.put("lab.filename", filepath);
+		}
+		
+		if(vm["display"].as<bool>()) {
+			namedWindow("Lab Histogram");
+			imshow("Lab Histogram", lab);
+		} else {
+			lab.release();
+		}
+
+		if(vm["verbose"].as<bool>()) {
+			cout << "DEBUG: Lab Finished." << endl;
+			system("pause");
+		}
 	}
-
-
-	cout << "lab" << endl;
-	namedWindow("a");
-	imshow("a", source_image);
-	waitKey(0);
 
 	int num_qtables = 0;
 	vector<qtable> qtables;
@@ -192,32 +264,11 @@ int main(int argc, char *argv[]) {
 		num_qtables = estimate_jpeg_quality(vm["file"].as<string>().c_str(), qtables, quality);
 	}
 
-
-	cout << "quality" << endl;
-	namedWindow("a");
-	imshow("a", source_image);
-	waitKey(0);
-
-	if(vm["dct"].as<bool>()) {
-		dct_madness(source_image);
-	}
-
-
-	cout << "dct" << endl;
-	namedWindow("a");
-	imshow("a", source_image);
-	waitKey(0);
+	// if(vm["dct"].as<bool>()) {
+	// 	dct_madness(source_image);
+	// }
 
 	if(vm.count("output")) {
-		ptree root;
-		for(vector<analysis>::iterator it = analysis_list.begin(); it != analysis_list.end(); ++it) {
-			string output_filepath = output_path.string() + "/" + source_path.stem().string() + "_" + it->filename;
-			imwrite(output_filepath, it->image);
-			string filepath = canonical(output_filepath).make_preferred().string();
-			// boost::algorithm::replace_all(filepath, ".", "\\.");
-			root.put(it->type + string(".filename"), filepath);
-		}
-
 		if(num_qtables > 0) {
 			root.put("imagick_estimate", quality[0]);
 			root.put("hf_estimate", quality[1]);
@@ -244,26 +295,18 @@ int main(int argc, char *argv[]) {
 			string json_string = data.str();
 			boost::algorithm::replace_all(json_string, "\"", "\\\"");
 			string script_call = "php " + vm["invoke"].as<string>() + " \"" + json_string + "\"";
-			cout << script_call << endl;
-			/*cout << data.str() << endl;*/
+			// cout << script_call << endl;
 			cout << system(script_call.c_str()) << endl;
-			//cout << system();
 			//write_json(cout, root);
 		}
 	}
 
-
-	cout << "output" << endl;
-	namedWindow("a");
-	imshow("a", source_image);
-	waitKey(0);
-	
 	if(vm["display"].as<bool>()) {
-		for(vector<analysis>::iterator it = analysis_list.begin(); it != analysis_list.end(); ++it) {
-			namedWindow(it->title);
-			imshow(it->title, it->image);
-		}
 		waitKey(0);
+	}
+
+	if(vm["verbose"].as<bool>()) {
+		cout << "DEBUG: All done." << endl;
 	}
 
 	return 0;
