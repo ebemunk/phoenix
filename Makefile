@@ -15,3 +15,7 @@ resources.o: resources.rc favicon.ico
 .PHONY: clean
 clean:
 	rm *.o phoenix.exe phoenix-dyn.exe
+
+speedtests: functions.cpp
+	$(CC) -c speedtests.cpp $(INC_PATHS) $(CFLAGS)
+	$(CC) speedtests.o functions.o $(CFLAGS) $(LDFLAGS) -o st.exe
