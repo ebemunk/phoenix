@@ -150,6 +150,64 @@ void lab_histogram(Mat &src, Mat &dst, bool whitebg = false) {
 }
 
 /*
+	Fast version of Lab Histogram, converting to Lab from CV_8U rather than
+	CV_32F saves a ton of time, but its less accurate.
+*/
+void lab_histogram_fast(Mat &src, Mat &dst, bool whitebg = false) {
+	Vec3f bgcolor = Vec3f(0,0,0);
+	if(whitebg) {
+		bgcolor = Vec3f(100,0,0);
+	}
+	//convert to float and scale to [0,1]
+	Mat lab;
+	// src.convertTo(lab, CV_32F, 1.0/255.0);
+	cvtColor(src, lab, CV_BGR2Lab);
+
+	lab.convertTo(lab, CV_32F);
+	vector<Mat> chn;
+	split(lab, chn);
+		chn[0] = (chn[0] / 255.0) * 100.0;
+		chn[1] = chn[1] - 128;
+		chn[2] = chn[2] - 128;
+	merge(chn, lab);
+	//L: (0, 100) a: (-127, 127) b: (-127, 127)
+
+	int abins = 256, bbins = 256;
+	//count frequencies and also sum L values
+	Mat hist = Mat::zeros(abins, bbins, CV_32F);
+	Mat sums = Mat::zeros(abins, bbins, CV_32F);
+	for(int i=0; i<src.rows; i++) {
+		for(int j=0; j<src.cols; j++) {
+			Vec3f pixel = lab.at<Vec3f>(i,j);
+			int A = round(1*(pixel[1]+128)), B = round(1*(pixel[2]+128));
+			hist.at<float>(A, B)++;
+			sums.at<float>(A, B) += pixel[0];
+		}
+	}
+
+	//get average L value for each bin
+	divide(sums, hist, hist);
+
+	//construct histogram image
+	int sub = 128;
+	Mat lab_histogram = Mat::zeros(abins, bbins, CV_32FC3);
+	for(int a=0; a<abins; a++) {
+		for(int b=0; b<bbins; b++) {
+			float avg = hist.at<float>(a,b);
+			if(avg>0) {
+				lab_histogram.at<Vec3f>(b, a) = Vec3f(avg, (a-sub), (b-sub));
+			} else {
+				lab_histogram.at<Vec3f>(b, a) = bgcolor;
+			}
+		}
+	}
+
+	//back to 8-bit rgb
+	cvtColor(lab_histogram, lab_histogram, CV_Lab2BGR);
+	lab_histogram.convertTo(dst, CV_8U, 255);
+}
+
+/*
 	Error Level Analysis
 	encode a jpeg with a known quality (default 90) and then subtract this image
 	from the original jpeg. Normalize the resulting image for better viewing
@@ -188,28 +246,35 @@ void luminance_gradient(Mat &src, Mat &dst) {
 
 	//get sobel in x and y directions
 	Size size = src.size();
-	Mat sobelX = Mat::zeros(size, CV_32F);
-	Mat sobelY = Mat::zeros(size, CV_32F);
+	Mat sobelX;
+	Mat sobelY;
 
 	Sobel(greyscale, sobelX, CV_32F, 1, 0);
 	Sobel(greyscale, sobelY, CV_32F, 0, 1);
 
 	dst = Mat::zeros(size, CV_32FC3);
-	Vec3f lg_px;
-	float sx, sy, angle;
-	for (int i = 0; i < dst.rows; i++) {
-		for (int j = 0; j < dst.cols; j++) {
-			sx = sobelX.at<float>(i, j);
-			sy = sobelY.at<float>(i, j);
-			angle = atan2(sx, sy);
-			lg_px[0] = sqrt(pow(sx, 2) + pow(sy, 2)); //B: magnitude of the x and y derivatives
-			lg_px[1] = -sin(angle) / 2.0 + 0.5; //G: -sin(angle) mapped to [0,1]
-			lg_px[2] = -cos(angle) / 2.0 + 0.5; //R: -cos(angle) mapped to [0,1]
-			dst.at<Vec3f>(i, j) = lg_px;
+
+	int rows = dst.rows;
+	int cols = dst.cols;
+	if(dst.isContinuous()) {
+		cols = rows * cols;
+		rows = 1;
+	}
+
+	for(int i=0; i<rows; i++) {
+		Vec3f *ptr = dst.ptr<Vec3f>(i);
+		float *sx = sobelX.ptr<float>(i);
+		float *sy = sobelY.ptr<float>(i);
+		for(int j=0; j<cols; j++) {
+			float angle = atan2(sx[j], sy[j]);
+			Vec3f pixel;
+			pixel[0] = sqrt((sx[j]*sx[j]) + (sy[j]*sy[j])); //B: magnitude of the x and y derivatives
+			pixel[1] = (-sin(angle) / 2.0 + 0.5); //G: -sin(angle) mapped to [0,1]
+			pixel[2] = (-cos(angle) / 2.0 + 0.5); //R: -cos(angle) mapped to [0,1]
+			ptr[j] = pixel;
 		}
 	}
 
-	//normalize and scale B channel to [0,1]
 	vector<Mat> ch;
 	split(dst, ch);
 		normalize(ch[0], ch[0], 0, 1, CV_MINMAX);
@@ -505,4 +570,44 @@ void dct_madness(Mat &src) {
 
 	cout << "BLOCKS:" << endl << "-------------" << endl;
 	cout << "Dims: " << blocks.rows << " x " << blocks.cols;
+}
+
+/*
+	evidently .at<T>() is much slower than getting
+	the row pointer in the outer loop & accessing pixels that way
+*/
+void luminance_gradient_old(Mat &src, Mat &dst) {
+	Mat greyscale;
+	cvtColor(src, greyscale, CV_BGR2GRAY);
+
+	//get sobel in x and y directions
+	Size size = src.size();
+	Mat sobelX = Mat::zeros(size, CV_32F);
+	Mat sobelY = Mat::zeros(size, CV_32F);
+
+	Sobel(greyscale, sobelX, CV_32F, 1, 0);
+	Sobel(greyscale, sobelY, CV_32F, 0, 1);
+
+	dst = Mat::zeros(size, CV_32FC3);
+	Vec3f lg_px;
+	float sx, sy, angle;
+	for (int i = 0; i < dst.rows; i++) {
+		for (int j = 0; j < dst.cols; j++) {
+			sx = sobelX.at<float>(i, j); // source of slowness
+			sy = sobelY.at<float>(i, j); //source of slowness
+			angle = atan2(sx, sy);
+			lg_px[0] = sqrt(pow(sx, 2) + pow(sy, 2)); //B: magnitude of the x and y derivatives
+			lg_px[1] = -sin(angle) / 2.0 + 0.5; //G: -sin(angle) mapped to [0,1]
+			lg_px[2] = -cos(angle) / 2.0 + 0.5; //R: -cos(angle) mapped to [0,1]
+			dst.at<Vec3f>(i, j) = lg_px;
+		}
+	}
+
+	//normalize and scale B channel to [0,1]
+	vector<Mat> ch;
+	split(dst, ch);
+		normalize(ch[0], ch[0], 0, 1, CV_MINMAX);
+	merge(ch, dst);
+
+	dst.convertTo(dst, CV_8U, 255);
 }

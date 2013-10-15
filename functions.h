@@ -21,6 +21,7 @@ void hsv_histogram(Mat &src, Mat &dst, bool whitebg = false);
 	Lab Colorspace Histogram for the image. Count all occurrences of (a,b) and sum the L component, representing the average L in Lab colorspace for each color.
 */
 void lab_histogram(Mat &src, Mat &dst, bool whitebg = false);
+void lab_histogram_fast(Mat &src, Mat &dst, bool whitebg = false);
 
 /*
 	Apply Error Level Analysis to the image. Resave source image at a known quality and subtract the known quality from the source image.
@@ -30,7 +31,8 @@ void error_level_analysis(Mat &src, Mat &dst, int quality = 90);
 /*
 	Colorized X and Y Sobel filters.
 */
-void luminance_gradient(Mat &src, Mat &dst);
+void luminance_gradient(Mat &src, Mat &dst); //2x faster!
+void luminance_gradient_old(Mat &src, Mat &dst);
 
 /*
 	Turn every pixel value to the average of the magnitude of its cross-shaped neighbors.
