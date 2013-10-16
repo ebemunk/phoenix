@@ -21,18 +21,20 @@ using namespace boost::program_options;
 using namespace boost::filesystem;
 using boost::property_tree::ptree;
 
+//for function switcher and verbose mode
 enum analysis_type {A_ELA, A_LG, A_AVGDIST, A_HSV, A_LAB};
 string analysis_names[] = {"ELA", "LG", "AVGDIST", "HSV", "LAB"};
 
+//run analysis on src image
 void run_analysis(Mat &src, Mat &dst, analysis_type type, vector<int> params, string output_stem, ptree &root, bool output, bool display, bool verbose) {
 	if(verbose) {
 		cout << "DEBUG: " << analysis_names[type] << " Starting..." << endl;
 		system("pause");
 	}
 
-	string output_filepath;
-	string title;
-	string ptree_element;
+	string output_filepath; //for saving
+	string title; //for display
+	string ptree_element; //for json output
 
 	switch(type) {
 		case A_ELA:
@@ -67,16 +69,16 @@ void run_analysis(Mat &src, Mat &dst, analysis_type type, vector<int> params, st
 			break;
 	}
 
-	if(output) {
+	if(output) { //output image & add to ptree
 		imwrite(output_filepath, dst);
 		string filepath = canonical(output_filepath).make_preferred().string();
 		root.put(ptree_element + ".filename", filepath);
 	}
 	
-	if(display) {
+	if(display) { //display right away, waitKey(0) at the end of program
 		namedWindow(title);
 		imshow(title, dst);
-	} else {
+	} else { //release memory
 		dst.release();
 	}
 
@@ -234,10 +236,10 @@ int main(int argc, char *argv[]) {
 	// }
 
 	if(vm.count("output")) {
-		if(num_qtables > 0) {
+		if(num_qtables > 0) { //if we have quantization tables, save them to ptree
 			root.put("imagick_estimate", quality[0]);
 			root.put("hf_estimate", quality[1]);
-			for(int i=0; i<num_qtables; i++) {
+			for(int i=0; i<num_qtables; i++) { //loop through the table and append as comma separated vals
 				stringstream dqt;
 				for(int j=0; j<8; j++) {
 					for(int k=0; k<8; k++) {
@@ -253,8 +255,8 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
+		//invoke the -invoke param as php script, passing in the ptree as json
 		if(vm.count("invoke")) {
-			//cout << vm["invoke"].as<string>() << endl;
 			stringstream data;
 			write_json(data, root, false);
 			string json_string = data.str();
