@@ -432,7 +432,7 @@ int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<
 		hf_quality = qtables[0].hf_qval;
 
 		//imagemagick estimation tables for single-dqt jpgs
-		ssize_t
+		size_t
 		hash[101] = {
 			510, 505, 422, 380, 355, 338, 326, 318, 311, 305,
 			300, 297, 293, 291, 288, 286, 284, 283, 281, 280,
@@ -490,7 +490,7 @@ int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<
 		hf_quality = (q0 + q1 + q2) / 3.0 + diff;
 
 		//imagemagick estimation tables for multi-dqt jpgs
-		ssize_t
+		size_t
 		hash[101] = {
 			1020, 1015, 932, 848, 780, 735, 702, 679, 660, 645,
 			632, 623, 613, 607, 600, 594, 589, 585, 581, 571,
