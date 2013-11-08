@@ -9,7 +9,7 @@ $(BUILD_DIR)/phoenix.o: phoenix.cpp $(BUILD_DIR)/functions.o
 $(BUILD_DIR)/functions.o: functions.cpp
 	$(CC) -c functions.cpp $(INC_PATHS) $(CFLAGS) -o $(BUILD_DIR)/functions.o
 
-$(BUILD_DIR)/resources.o: resources.rc eye.ico
+$(BUILD_DIR)/resources.o: resources.rc assets/eye.ico
 	windres resources.rc $(BUILD_DIR)/resources.o
 
 .PHONY: clean
