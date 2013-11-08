@@ -1,1 +1,19 @@
-MAINICON ICON "favicon.ico"
+id ICON "eye.ico"
+1 VERSIONINFO
+FILEVERSION     1,0,0,0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "080904E4"
+    BEGIN
+      VALUE "FileDescription", "Phoenix: Image Forensics"
+      VALUE "FileVersion", "1.0.0"
+      VALUE "OriginalFilename", "phoenix.exe"
+    END
+  END
+
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x809, 1252
+  END
+END
