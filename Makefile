@@ -1,21 +1,21 @@
 include Makefile-variables.mk
 
-all: phoenix.o functions.o resources.o
-	$(CC) phoenix.o functions.o resources.o $(CFLAGS) $(LDFLAGS) -o $(EXE_NAME)
+all: $(BUILD_DIR)/phoenix.o $(BUILD_DIR)/functions.o $(BUILD_DIR)/resources.o
+	$(CC) $(BUILD_DIR)/phoenix.o $(BUILD_DIR)/functions.o $(BUILD_DIR)/resources.o $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(EXE_NAME)
 
-phoenix.o: phoenix.cpp functions.o
-	$(CC) -c phoenix.cpp $(INC_PATHS) $(CFLAGS)
+$(BUILD_DIR)/phoenix.o: phoenix.cpp $(BUILD_DIR)/functions.o
+	$(CC) -c phoenix.cpp $(INC_PATHS) $(CFLAGS) -o $(BUILD_DIR)/phoenix.o
 
-functions.o: functions.cpp
-	$(CC) -c functions.cpp $(INC_PATHS) $(CFLAGS)
+$(BUILD_DIR)/functions.o: functions.cpp
+	$(CC) -c functions.cpp $(INC_PATHS) $(CFLAGS) -o $(BUILD_DIR)/functions.o
 
-resources.o: resources.rc favicon.ico
-	windres resources.rc resources.o
+$(BUILD_DIR)/resources.o: resources.rc eye.ico
+	windres resources.rc $(BUILD_DIR)/resources.o
 
 .PHONY: clean
 clean:
-	rm *.o phoenix.exe phoenix-dyn.exe
+	rm $(BUILD_DIR)/*.o $(BUILD_DIR)/phoenix.exe
 
 speedtests: functions.cpp
-	$(CC) -c speedtests.cpp $(INC_PATHS) $(CFLAGS)
-	$(CC) speedtests.o functions.o $(CFLAGS) $(LDFLAGS) -o st.exe
+	$(CC) -c speedtests.cpp $(INC_PATHS) $(CFLAGS) -o $(BUILD_DIR)/speedtests.o
+	$(CC) speedtests.o functions.o $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/st.exe
