@@ -5,3 +5,4 @@ i/
 *.sublime-workspace
 Makefile-variables.mk
 codehelp/
+build/
