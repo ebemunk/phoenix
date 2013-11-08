@@ -19,7 +19,7 @@ Features:
 * `-lg` Luminance Gradient
 * `-avgdist` Average Distance
 * `-hsv` HSV Colorspace Histogram
-* -`lab` Lab Colorspace Histogram
+* `-lab` Lab Colorspace Histogram
 
 #Screenshots
 Here are some examples of phoenix output with the image used in the legendary [Body By Victoria](http://www.hackerfactor.com/blog/?/archives/322-Body-By-Victoria.html) analysis by Neal Krawetz.
