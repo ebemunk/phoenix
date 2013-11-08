@@ -1,5 +1,5 @@
-#ifndef FUNCTIONS_H
-#define FUNCTIONS_H
+#ifndef FUNCTIONS_HPP
+#define FUNCTIONS_HPP
 
 #include <opencv2/core/core.hpp>
 

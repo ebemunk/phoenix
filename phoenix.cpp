@@ -13,7 +13,7 @@
 #include <chrono>
 
 #include "structs.h"
-#include "functions.h"
+#include "functions.hpp"
 
 using namespace std;
 using namespace cv;
