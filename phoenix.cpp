@@ -133,6 +133,7 @@ int main(int argc, char *argv[]) {
 	} catch (const exception &e) { //error with command options
 		cout << "Error: Cannot parse program commands!" << endl;
 		cout << e.what() << endl;
+		cout << desc << endl;
 		return 1;
 	} catch(...) {
 		cout << "Error: Fatal error while parsing options." << endl;
