@@ -25,8 +25,13 @@ using boost::property_tree::ptree;
 enum analysis_type {A_ELA, A_LG, A_AVGDIST, A_HSV, A_LAB};
 string analysis_names[] = {"ELA", "LG", "AVGDIST", "HSV", "LAB"};
 
+//globals for run_analysis function
+string output_stem;
+ptree root;
+bool output, display, verbose;
+
 //run analysis on src image
-void run_analysis(Mat &src, Mat &dst, analysis_type type, vector<int> params, string output_stem, ptree &root, bool output, bool display, bool verbose) {
+void run_analysis(Mat &src, Mat &dst, analysis_type type, vector<int> params) {
 	if(verbose) {
 		cout << "DEBUG: " << analysis_names[type] << " Starting..." << endl;
 		system("pause");
@@ -175,13 +180,13 @@ int main(int argc, char *argv[]) {
 	}
 
 	ptree root; //property tree for json output in -invoke
-	bool f_display = vm["display"].as<bool>();
-	bool f_verbose = vm["verbose"].as<bool>();
-	bool f_output = vm.count("output");
+	display = vm["display"].as<bool>();
+	verbose = vm["verbose"].as<bool>();
+	output = vm.count("output");
 
 	string output_stem = output_path.string() + "/" + source_path.stem().string();
 
-	if(f_verbose) {
+	if(verbose) {
 		cout << "DEBUG: Image Loaded. Ready to go..." << endl;
 		system("pause");
 	}
@@ -191,21 +196,21 @@ int main(int argc, char *argv[]) {
 		vector<int> params;
 		params.push_back(vm["ela"].as<int>());
 
-		run_analysis(source_image, ela, A_ELA, params, output_stem, root, f_output, f_display, f_verbose);
+		run_analysis(source_image, ela, A_ELA, params);
 	}
 
 	if(vm["lg"].as<bool>()) {
 		Mat lg;
 		vector<int> params;
 
-		run_analysis(source_image, lg, A_LG, params, output_stem, root, f_output, f_display, f_verbose);
+		run_analysis(source_image, lg, A_LG, params);
 	}
 
 	if(vm["avgdist"].as<bool>()) {
 		Mat avgdist;
 		vector<int> params;
 
-		run_analysis(source_image, avgdist, A_AVGDIST, params, output_stem, root, f_output, f_display, f_verbose);
+		run_analysis(source_image, avgdist, A_AVGDIST, params);
 	}
 
 	if(vm.count("hsv")) {
@@ -213,7 +218,7 @@ int main(int argc, char *argv[]) {
 		vector<int> params;
 		params.push_back(vm["hsv"].as<int>());
 
-		run_analysis(source_image, hsv, A_HSV, params, output_stem, root, f_output, f_display, f_verbose);
+		run_analysis(source_image, hsv, A_HSV, params);
 	}
 
 	if(vm.count("lab")) {
@@ -221,7 +226,7 @@ int main(int argc, char *argv[]) {
 		vector<int> params;
 		params.push_back(vm["lab"].as<int>());
 
-		run_analysis(source_image, lab, A_LAB, params, output_stem, root, f_output, f_display, f_verbose);
+		run_analysis(source_image, lab, A_LAB, params);
 	}
 
 	int num_qtables = 0;
@@ -266,6 +271,12 @@ int main(int argc, char *argv[]) {
 			// cout << script_call << endl;
 			cout << system(script_call.c_str()) << endl;
 			//write_json(cout, root);
+		} else { //output results to stdout
+
+		}
+
+		if(verbose) {
+			write_json(cout, root);
 		}
 	}
 
