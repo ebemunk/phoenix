@@ -1,8 +1,7 @@
-*.o
-*.exe
 i/
+codehelp/
+build/*.o
+build/*.exe
+build/phoenix
 *.sublime-project
 *.sublime-workspace
-Makefile-variables.mk
-codehelp/
-build/
