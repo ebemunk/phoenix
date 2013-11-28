@@ -1,6 +1,6 @@
 phoenix - Image Forensics
 =======
-phoenix is a small image forensics tool that can run some common analyses on images. It was inspired by the image analyses at the [Hackerfactor Blog](http://www.hackerfactor.com/blog/), and implements some of the algorithms used there. It is named phoenix because it has resurrected many times before taking its final form in C++.
+phoenix is a small image forensics tool that can run some common analyses on images. It was inspired by the image analyses at the [Hackerfactor Blog](http://www.hackerfactor.com/blog/), and implements some of the algorithms used there. It is named phoenix because it has resurrected many times before taking its current form in C++.
 
 Features:
 
@@ -8,7 +8,8 @@ Features:
 * Luminance Gradient
 * Average Distance
 * HSV and Lab colorspace histograms
-* ~~JPEG quality estimate ([ImageMagick](http://www.imagemagick.org/script/index.php)-style and [Hackerfactor jpegquality](http://www.hackerfactor.com/src/jpegquality.c) estimates)~~
+* JPEG resave quality estimate ([ImageMagick](http://www.imagemagick.org/script/index.php)-style and [Hackerfactor jpegquality](http://www.hackerfactor.com/src/jpegquality.c) estimates)
+* Extract JPEG Quantization Tables
 
 #Usage
 * `-h | -help` display help text.
@@ -40,7 +41,7 @@ Here are some examples of phoenix output with the image used in the legendary [B
 ![Lab Histogram](assets/bbv_lab.png)
 
 #Compiling
-phoenix depends on OpenCV 2.4.6 and Boost 1.54.0 Libraries. Exact versions are probably not required. Edit the variables in `Makefile-variables.mk` to match your OpenCV and Boost library paths. Running `make` should compile if everything is in place.
+phoenix depends on OpenCV 2.4.6 and Boost 1.54.0 Libraries. Exact versions are probably not required. There is Windows (`Makefile-variables-win.mk`) and Linux (`Makefile-variables-linux.mk`) versions for the make variables to keep things a bit tidy. Change the first line of `Makefile` to match your system and edit the corresponding `Makefile-variables` file to match your local settings. The defaults should work if you didn't do anything fancy while compiling OpenCV or Boost.
 
 #Resources
 Some resources I used while developing many of the algorithms here.
