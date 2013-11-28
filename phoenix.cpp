@@ -97,20 +97,20 @@ int main(int argc, char *argv[]) {
 	//declare program options
 	options_description desc("USAGE: phoenix -f <path_to_file> [options]\nAllowed options");
 	desc.add_options()
-	    ("help,h", "List all arguments - produce help message")
-	    ("file,f", value<string>()->required(), "Source image file")
-	    ("output,o", value<string>()->implicit_value("./"), "Output folder path")
-	    ("ela", value<int>()->implicit_value(70), "Error Level Analysis [optional resave quality]")
-	    ("hsv", value<int>()->implicit_value(0), "HSV Colorspace Histogram")
-	    ("lab", value<int>()->implicit_value(0), "Lab Colorspace Histogram")
-	    // ("borders", bool_switch()->default_value(false), "Show RGB borders in histograms")
-	    ("lg", bool_switch()->default_value(false), "Luminance Gradient")
-	    ("avgdist", bool_switch()->default_value(false), "Average Distance")
-	    ("quality,q", bool_switch()->default_value(true), "Estimate JPEG Quality")
-	    // ("dct", bool_switch()->default_value(false), "DCT")
-	    ("display,d", bool_switch()->default_value(false), "Display outputs")
-	    ("invoke", value<string>(), "Invoke php script after execution")
-	    ("verbose,v", bool_switch()->default_value(false), "Verbose (debug) mode")
+		("help,h", "List all arguments - produce help message")
+		("file,f", value<string>()->required(), "Source image file")
+		("output,o", value<string>()->implicit_value("./"), "Output folder path")
+		("ela", value<int>()->implicit_value(70), "Error Level Analysis [optional resave quality]")
+		("hsv", value<int>()->implicit_value(0), "HSV Colorspace Histogram")
+		("lab", value<int>()->implicit_value(0), "Lab Colorspace Histogram")
+		// ("borders", bool_switch()->default_value(false), "Show RGB borders in histograms")
+		("lg", bool_switch()->default_value(false), "Luminance Gradient")
+		("avgdist", bool_switch()->default_value(false), "Average Distance")
+		("quality,q", bool_switch()->default_value(true), "Estimate JPEG Quality")
+		// ("dct", bool_switch()->default_value(false), "DCT")
+		("display,d", bool_switch()->default_value(false), "Display outputs")
+		("invoke", value<string>(), "Invoke php script after execution")
+		("verbose,v", bool_switch()->default_value(false), "Verbose (debug) mode")
 	;
 
 	variables_map vm;
@@ -179,12 +179,11 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	ptree root; //property tree for json output in -invoke
+	//assign globals
 	display = vm["display"].as<bool>();
 	verbose = vm["verbose"].as<bool>();
 	output = vm.count("output");
-
-	string output_stem = output_path.string() + "/" + source_path.stem().string();
+	output_stem = output_path.string() + "/" + source_path.stem().string();
 
 	if(verbose) {
 		cout << "DEBUG: Image Loaded. Ready to go..." << endl;
@@ -259,6 +258,7 @@ int main(int argc, char *argv[]) {
 				tableindex << "dqt." << i;
 				root.put(tableindex.str(), dqt.str());
 			}
+		} else {
 		}
 
 		//invoke the -invoke param as php script, passing in the ptree as json
@@ -266,13 +266,27 @@ int main(int argc, char *argv[]) {
 			stringstream data;
 			write_json(data, root, false);
 			string json_string = data.str();
-			boost::algorithm::replace_all(json_string, "\"", "\\\"");
+			boost::algorithm::replace_all(json_string, "\"", "\\\""); //escape quotes
 			string script_call = "php " + vm["invoke"].as<string>() + " \"" + json_string + "\"";
 			// cout << script_call << endl;
 			cout << system(script_call.c_str()) << endl;
-			//write_json(cout, root);
 		} else { //output results to stdout
+			// write_ini(cout, root);
+			cout << "Last Resave Quality" << endl;
+			cout << "  ImageMagick Estimate: " << (int) quality[0] << endl;
+			cout << "  Hackerfactor Estimate: " << (int) quality[1] << endl;
 
+			cout << "  Quantization Tables" << endl;
+			for(int i=0; i<num_qtables; i++) {
+				cout << "    " << (i == 0 ? "Luminance" : "Chrominance") << endl;
+				for(int j=0; j<8; j++) {
+					cout << "    ";
+					for(int k=0; k<8; k++) {
+						cout << qtables[0].table.at<float>(j, k) << " ";
+					}
+					cout << endl;
+				}
+			}
 		}
 
 		if(verbose) {
