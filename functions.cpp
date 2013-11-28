@@ -219,10 +219,10 @@ void lab_histogram_fast(Mat &src, Mat &dst, bool whitebg = false) {
 void error_level_analysis(Mat &src, Mat &dst, int quality = 90) {
 	vector<uchar> buffer;
 
-    vector<int> save_params(2);
-    save_params.push_back(CV_IMWRITE_JPEG_QUALITY);
-    save_params.push_back(quality);
-    //encode as jpeg
+	vector<int> save_params(2);
+	save_params.push_back(CV_IMWRITE_JPEG_QUALITY);
+	save_params.push_back(quality);
+	//encode as jpeg
 	imencode(".jpg", src, buffer, save_params);
 
 	Mat resaved = imdecode(buffer, CV_LOAD_IMAGE_COLOR);
@@ -304,16 +304,9 @@ void average_distance(Mat &src, Mat &dst) {
 }
 
 /*
-	Ready JPEG file contents and extract DQTs (Discrete Quantization Tables), then
-	estimate the last save quality using methods from Hackerfactor and Imagemagick
-
-	uses estimation method in Neal Krawetz's jpegquality tool
-	http://www.hackerfactor.com/src/jpegquality.c
-
-	also uses estimation tables from Imagemagick codebase
-	http://trac.imagemagick.org/browser/ImageMagick/trunk/coders/jpeg.c
+	Extract given marker from jpeg file.
 */
-int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<double> &quality_estimates) {
+int extract_jpeg_marker(const char* filename, char marker, vector<char*> &list) {
 	//open file and get started
 	ifstream in(filename, ios::binary);
 
@@ -321,7 +314,7 @@ int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<
 	char buffer[2];
 	in.read(buffer, 2);
 	if(buffer[0] != (char)0xFF && buffer[1] != (char)0xD8) {
-		cout << "not jpeg" << endl;
+		//not jpeg
 		return -2;
 	}
 	/*cout << "First Two: " << endl;
@@ -330,12 +323,12 @@ int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<
 	
 	in.read(buffer, 2);
 	if(buffer[0] != (char)0xFF) {
-		cout << "jpeg but corrupt?" << endl;
+		//jpeg but corrupt?
 		return -1;
 	}
 	/*cout << "Third: ";
 	cout << "\t" << hex << (unsigned short)buffer[0] << endl;*/
-	vector<char*> dqt_tables;
+
 	/**
 	 * loop until:
 	 * - end of file
@@ -365,8 +358,8 @@ int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<
 			in.read(segdata, size_s-2);
 
 			//DQT marker 0xdb
-			if(buffer[1] == (char)0xDB) {
-				dqt_tables.push_back(segdata);
+			if(buffer[1] == marker) {
+				list.push_back(segdata);
 			}
 			/*cout << "+-+-+-+-+-+-+-+-+-+" << endl;*/
 		}
@@ -374,18 +367,35 @@ int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<
 		//if we see start of scan (SOS 0xda) that means its just image data from here on
 		if(buffer[1] == (char)0xDA) {
 			compressed = true;
-			/*cout << "compressed hit" << endl;*/
 		} else {
 			//read the next two bytes, first one must be 0xff start of segment
 			in.read(buffer, 2);
 			if(buffer[0] != (char)0xFF) { //something wrong with this jpeg
-				cout << "jpeg corrupt midway?" << endl;
 				return -1;
 			}
 		}
 	} //file reading complete
 
-	/*TODO: refactor above routine to its own function*/
+	return list.size();
+}
+
+/*
+	Estimate jpeg quality from extracted DQTs (Discrete Quantization Tables)
+
+	uses estimation method in Neal Krawetz's jpegquality tool
+	http://www.hackerfactor.com/src/jpegquality.c
+
+	also uses estimation tables from Imagemagick codebase
+	http://trac.imagemagick.org/browser/ImageMagick/trunk/coders/jpeg.c
+*/
+int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<double> &quality_estimates) {
+	vector<char*> dqt_tables;
+
+	int num_segments = extract_jpeg_marker(filename, 0xDB, dqt_tables);
+	if(num_segments < 1) {
+		return num_segments;
+	}
+
 	Mat zigzag8 = (Mat_<int>(64, 1) << 0, 1, 5, 6, 14, 15, 27, 28, 2, 4, 7, 13, 16, 26, 29, 42, 3, 8, 12, 17, 25, 30, 41, 43, 9, 11, 18, 24, 31, 40, 44, 53, 10, 19, 23, 32, 39, 45, 52, 54, 20, 22, 33, 38, 46, 51, 55, 60, 21, 34, 37, 47, 50, 56, 59, 61, 35, 36, 48, 49, 57, 58, 62, 63);
 	
 	//loop over extracted files and prepare to estimate quality
@@ -472,7 +482,7 @@ int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<
 				imagick_quality = i + 1;
 			}
 			break;
-        }
+		}
 	} else { // 2 or 3 quantization tables
 		if(dqt_tables.size() == 2) { //this means Cr and Cb tables are the same
 			num_qtables = 2;
@@ -539,6 +549,7 @@ int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<
 	return num_qtables;
 }
 
+/* start of what will become copy-move matching 
 void dct_madness(Mat &src) {
 	int blocksize = 8;
 	int total_blocks = (src.rows - blocksize) * (src.cols - blocksize);
@@ -556,7 +567,6 @@ void dct_madness(Mat &src) {
 			tmp_block = tmp_block.reshape(1, 1).clone();
 			blocks.push_back(tmp_block);
 
-			/*
 			cout << tmp_block << endl << endl << Rect(i,j,2,2) << endl << endl;
 
 			Vec3b zero = tmp_block.at<Vec3b>(0,0);
@@ -564,13 +574,12 @@ void dct_madness(Mat &src) {
 			cout << endl << zero << endl << one << endl;
 
 			cout << endl << endl << "DIMS " << tmp_block.rows << " " << tmp_block.cols << endl;
-			*/
 		}
 	}
 
 	cout << "BLOCKS:" << endl << "-------------" << endl;
 	cout << "Dims: " << blocks.rows << " x " << blocks.cols;
-}
+}*/
 
 /*
 	evidently .at<T>() is much slower than getting
