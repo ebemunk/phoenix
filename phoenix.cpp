@@ -22,8 +22,8 @@ using namespace boost::filesystem;
 using boost::property_tree::ptree;
 
 //for function switcher and verbose mode
-enum analysis_type {A_ELA, A_LG, A_AVGDIST, A_HSV, A_LAB};
-string analysis_names[] = {"ELA", "LG", "AVGDIST", "HSV", "LAB"};
+enum analysis_type {A_ELA, A_LG, A_AVGDIST, A_HSV, A_LAB, A_LAB_FAST};
+string analysis_names[] = {"ELA", "LG", "AVGDIST", "HSV", "LAB", "LAB_FAST"};
 
 //globals for run_analysis function
 string output_stem;
@@ -70,13 +70,20 @@ void run_analysis(Mat &src, Mat &dst, analysis_type type, vector<int> params) {
 			output_filepath = output_stem + "_lab";
 			title = "Lab Histogram";
 			ptree_element = "lab";
+			lab_histogram(src, dst);
+			break;
+		case A_LAB_FAST:
+			output_filepath = output_stem + "_lab_fast";
+			title = "Lab Histogram";
+			ptree_element = "lab_fast";
 			lab_histogram_fast(src, dst);
 			break;
 	}
-	
+
 	if(autolevels && type != A_HSV & type != A_LAB) {
-		hsi_histogram_stretch(dst, dst);
+		hsv_histogram_stretch(dst, dst);
 		output_filepath += "_autolevels.png";
+		ptree_element += "_autolevels";
 	} else {
 		output_filepath += ".png";
 	}
@@ -110,6 +117,7 @@ int main(int argc, char *argv[]) {
 		("ela", value<int>()->implicit_value(70), "Error Level Analysis [optional resave quality]")
 		("hsv", value<int>()->implicit_value(0), "HSV Colorspace Histogram")
 		("lab", value<int>()->implicit_value(0), "Lab Colorspace Histogram")
+		("labfast", value<int>()->implicit_value(0), "Lab Colorspace Histogram (Fast Version)")
 		// ("borders", bool_switch()->default_value(false), "Show RGB borders in histograms")
 		("lg", bool_switch()->default_value(false), "Luminance Gradient")
 		("avgdist", bool_switch()->default_value(false), "Average Distance")
@@ -235,6 +243,14 @@ int main(int argc, char *argv[]) {
 		params.push_back(vm["lab"].as<int>());
 
 		run_analysis(source_image, lab, A_LAB, params);
+	}
+
+	if(vm.count("labfast")) {
+		Mat lab;
+		vector<int> params;
+		params.push_back(vm["labfast"].as<int>());
+
+		run_analysis(source_image, lab, A_LAB_FAST, params);
 	}
 
 	int num_qtables = 0;

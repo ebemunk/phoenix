@@ -15,7 +15,7 @@ void rgb_borders(Mat &dst);
 /*
 
 */
-void hsi_histogram_stretch(Mat &src, Mat &dst);
+void hsv_histogram_stretch(Mat &src, Mat &dst);
 
 /*
 	HSV Colorspace Histogram for the image. Count all occurrences of (H,S) and sum the V component, representing the average V in HSV colorspace for each color.

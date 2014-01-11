@@ -43,9 +43,30 @@ void rgb_borders(Mat &dst) {
 }
 
 /*
+	HSV Histogram Stretch (Auto-Levels)
+	converts the image to HSV colorspace and then applies histogram equalization
+	to the V channel, and converts back to RGB. This is used to make copies that
+	are better viewable
 */
-void hsi_histogram_stretch(Mat &src, Mat &dst) {
+void hsv_histogram_stretch(Mat &src, Mat &dst) {
+	//convert to float & HSV colorspace
+	src.convertTo(dst, CV_32F, 1.0/255.0);
+	cvtColor(dst, dst, CV_BGR2HSV);
 
+	vector<Mat> ch;
+	split(dst, ch);
+		//convert V channel to 8-bit
+		ch[2].convertTo(ch[2], CV_8U, 255);
+		//equalize histogram
+		equalizeHist(ch[2], ch[2]);
+		//back to float & normalize to [0,1]
+		ch[2].convertTo(ch[2], CV_32F, 1.0/255.0);
+		normalize(ch[2], ch[2], 0, 1, CV_MINMAX);
+	merge(ch, dst);
+
+	//back to 8-bit rgb
+	cvtColor(dst, dst, CV_HSV2BGR);
+	dst.convertTo(dst, CV_8U, 255);
 }
 
 /*
