@@ -21,6 +21,8 @@ Features:
 * `-avgdist` Average Distance
 * `-hsv` HSV Colorspace Histogram
 * `-lab` Lab Colorspace Histogram
+* `-labfast` Lab Colorspace Histogram, faster but less accurate version (256*256 instead of 1024*1024 output)
+* `-autolevels` Flag to enable histogram equalization (auto-levels) on output images
 
 #Screenshots
 Here are some examples of phoenix output with the image used in the legendary [Body By Victoria](http://www.hackerfactor.com/blog/?/archives/322-Body-By-Victoria.html) analysis by Neal Krawetz.
