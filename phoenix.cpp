@@ -28,7 +28,7 @@ string analysis_names[] = {"ELA", "LG", "AVGDIST", "HSV", "LAB"};
 //globals for run_analysis function
 string output_stem;
 ptree root;
-bool output, display, verbose;
+bool output, display, verbose, autolevels;
 
 //run analysis on src image
 void run_analysis(Mat &src, Mat &dst, analysis_type type, vector<int> params) {
@@ -43,35 +43,42 @@ void run_analysis(Mat &src, Mat &dst, analysis_type type, vector<int> params) {
 
 	switch(type) {
 		case A_ELA:
-			output_filepath = output_stem + "_ela.png";
+			output_filepath = output_stem + "_ela";
 			title = "Error Level Analysis";
 			ptree_element = "ela";
 			error_level_analysis(src, dst, params[0]);
 			break;
 		case A_LG:
-			output_filepath = output_stem + "_lg.png";
+			output_filepath = output_stem + "_lg";
 			title = "Luminance Gradient";
 			ptree_element = "lg";
 			luminance_gradient(src, dst);
 			break;
 		case A_AVGDIST:
-			output_filepath = output_stem + "_avgdist.png";
+			output_filepath = output_stem + "_avgdist";
 			title = "Average Distance";
 			ptree_element = "avgdist";
 			average_distance(src, dst);
 			break;
 		case A_HSV:
-			output_filepath = output_stem + "_hsv.png";
+			output_filepath = output_stem + "_hsv";
 			title = "HSV Histogram";
 			ptree_element = "hsv";
 			hsv_histogram(src, dst, params[0]);
 			break;
 		case A_LAB:
-			output_filepath = output_stem + "_lab.png";
+			output_filepath = output_stem + "_lab";
 			title = "Lab Histogram";
 			ptree_element = "lab";
 			lab_histogram_fast(src, dst);
 			break;
+	}
+	
+	if(autolevels && type != A_HSV & type != A_LAB) {
+		hsi_histogram_stretch(dst, dst);
+		output_filepath += "_autolevels.png";
+	} else {
+		output_filepath += ".png";
 	}
 
 	if(output) { //output image & add to ptree
@@ -109,6 +116,7 @@ int main(int argc, char *argv[]) {
 		("quality,q", bool_switch()->default_value(true), "Estimate JPEG Quality")
 		// ("dct", bool_switch()->default_value(false), "DCT")
 		("display,d", bool_switch()->default_value(false), "Display outputs")
+		("autolevels", bool_switch()->default_value(false), "Also output histogram stretched (Auto-Levels) versions")
 		("invoke", value<string>(), "Invoke php script after execution")
 		("verbose,v", bool_switch()->default_value(false), "Verbose (debug) mode")
 	;
@@ -183,6 +191,7 @@ int main(int argc, char *argv[]) {
 	display = vm["display"].as<bool>();
 	verbose = vm["verbose"].as<bool>();
 	output = vm.count("output");
+	autolevels = vm["autolevels"].as<bool>();
 	output_stem = output_path.string() + "/" + source_path.stem().string();
 
 	if(verbose) {

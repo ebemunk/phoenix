@@ -43,6 +43,12 @@ void rgb_borders(Mat &dst) {
 }
 
 /*
+*/
+void hsi_histogram_stretch(Mat &src, Mat &dst) {
+
+}
+
+/*
 	HSV Histogram Analysis
 	convert image to float and change colorspace to HSV. Count all H,S pairs and
 	compute frequency + the total value for V for each pair. Divide the total value
@@ -580,43 +586,3 @@ void dct_madness(Mat &src) {
 	cout << "BLOCKS:" << endl << "-------------" << endl;
 	cout << "Dims: " << blocks.rows << " x " << blocks.cols;
 }*/
-
-/*
-	evidently .at<T>() is much slower than getting
-	the row pointer in the outer loop & accessing pixels that way
-*/
-void luminance_gradient_old(Mat &src, Mat &dst) {
-	Mat greyscale;
-	cvtColor(src, greyscale, CV_BGR2GRAY);
-
-	//get sobel in x and y directions
-	Size size = src.size();
-	Mat sobelX = Mat::zeros(size, CV_32F);
-	Mat sobelY = Mat::zeros(size, CV_32F);
-
-	Sobel(greyscale, sobelX, CV_32F, 1, 0);
-	Sobel(greyscale, sobelY, CV_32F, 0, 1);
-
-	dst = Mat::zeros(size, CV_32FC3);
-	Vec3f lg_px;
-	float sx, sy, angle;
-	for (int i = 0; i < dst.rows; i++) {
-		for (int j = 0; j < dst.cols; j++) {
-			sx = sobelX.at<float>(i, j); // source of slowness
-			sy = sobelY.at<float>(i, j); //source of slowness
-			angle = atan2(sx, sy);
-			lg_px[0] = sqrt(pow(sx, 2) + pow(sy, 2)); //B: magnitude of the x and y derivatives
-			lg_px[1] = -sin(angle) / 2.0 + 0.5; //G: -sin(angle) mapped to [0,1]
-			lg_px[2] = -cos(angle) / 2.0 + 0.5; //R: -cos(angle) mapped to [0,1]
-			dst.at<Vec3f>(i, j) = lg_px;
-		}
-	}
-
-	//normalize and scale B channel to [0,1]
-	vector<Mat> ch;
-	split(dst, ch);
-		normalize(ch[0], ch[0], 0, 1, CV_MINMAX);
-	merge(ch, dst);
-
-	dst.convertTo(dst, CV_8U, 255);
-}

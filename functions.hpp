@@ -13,6 +13,11 @@ using namespace cv;
 void rgb_borders(Mat &dst);
 
 /*
+
+*/
+void hsi_histogram_stretch(Mat &src, Mat &dst);
+
+/*
 	HSV Colorspace Histogram for the image. Count all occurrences of (H,S) and sum the V component, representing the average V in HSV colorspace for each color.
 */
 void hsv_histogram(Mat &src, Mat &dst, bool whitebg = false);
@@ -31,8 +36,7 @@ void error_level_analysis(Mat &src, Mat &dst, int quality = 90);
 /*
 	Colorized X and Y Sobel filters.
 */
-void luminance_gradient(Mat &src, Mat &dst); //2x faster!
-void luminance_gradient_old(Mat &src, Mat &dst);
+void luminance_gradient(Mat &src, Mat &dst);
 
 /*
 	Turn every pixel value to the average of the magnitude of its cross-shaped neighbors.
@@ -47,6 +51,6 @@ int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<
 /*
 	copy-move (one day)
 */
-void dct_madness(Mat &src);
+// void dct_madness(Mat &src);
 
 #endif
