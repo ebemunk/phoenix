@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
 		("quality,q", bool_switch()->default_value(true), "Estimate JPEG Quality")
 		// ("dct", bool_switch()->default_value(false), "DCT")
 		("display,d", bool_switch()->default_value(false), "Display outputs")
-		("autolevels", bool_switch()->default_value(false), "Also output histogram stretched (Auto-Levels) versions")
+		("autolevels", bool_switch()->default_value(false), "Apply histogram stretching (Auto-Levels) to outputs")
 		("invoke", value<string>(), "Invoke php script after execution")
 		("verbose,v", bool_switch()->default_value(false), "Verbose (debug) mode")
 	;
