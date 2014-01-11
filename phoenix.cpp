@@ -80,7 +80,7 @@ void run_analysis(Mat &src, Mat &dst, analysis_type type, vector<int> params) {
 			break;
 	}
 
-	if(autolevels && type != A_HSV & type != A_LAB) {
+	if(autolevels && type != A_HSV & type != A_LAB & type != A_LAB_FAST) {
 		hsv_histogram_stretch(dst, dst);
 		output_filepath += "_autolevels.png";
 		ptree_element += "_autolevels";
