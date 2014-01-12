@@ -90,8 +90,8 @@ void run_analysis(Mat &src, Mat &dst, analysis_type type, vector<int> params) {
 
 	if(output) { //output image & add to ptree
 		bool write_success = imwrite(output_filepath, dst);
-		if(!write_success) cout << "cant write" << endl;
-		return;
+		// if(!write_success) cout << "cant write" << endl;
+
 		string filepath = canonical(output_filepath).make_preferred().string();
 		root.put(ptree_element + ".filename", filepath);
 	}
