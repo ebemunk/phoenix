@@ -280,7 +280,7 @@ int main(int argc, char *argv[]) {
 					}
 				}
 				stringstream tableindex;
-				tableindex << "dqt." << i;
+				tableindex << "qtables." << i;
 				root.put(tableindex.str(), dqt.str());
 			}
 		} else {
