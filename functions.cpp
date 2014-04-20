@@ -576,34 +576,126 @@ int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<
 	return num_qtables;
 }
 
-/* start of what will become copy-move matching 
-void dct_madness(Mat &src) {
-	int blocksize = 8;
-	int total_blocks = (src.rows - blocksize) * (src.cols - blocksize);
 
-	Mat blocks;
-	//blocks.reserve(total_blocks);
 
-	Mat tmp_block;
 
-	cout << "ROWS: " << src.rows << endl << "COLS: " << src.cols << endl;
 
-	for(int i=0; i<src.cols-blocksize+1; i++) {
-		for(int j=0; j<src.rows-blocksize+1; j++) {
-			tmp_block = Mat(src, Rect(i,j,blocksize,blocksize)).clone();
-			tmp_block = tmp_block.reshape(1, 1).clone();
-			blocks.push_back(tmp_block);
+template<class T> class sorter {
+	private:
+		const vector<T> &values;
 
-			cout << tmp_block << endl << endl << Rect(i,j,2,2) << endl << endl;
+	public:
+		sorter(const vector<T> &v) : values(v) {}
 
-			Vec3b zero = tmp_block.at<Vec3b>(0,0);
-			Vec3b one = tmp_block.at<Vec3b>(0,1);
-			cout << endl << zero << endl << one << endl;
+		bool operator()(int a, int b) {
+			unsigned char *v_a = (unsigned char*)(values[a].data);
+			unsigned char *v_b = (unsigned char*)(values[b].data);
 
-			cout << endl << endl << "DIMS " << tmp_block.rows << " " << tmp_block.cols << endl;
+			int limit = values[a].cols * values[a].rows;
+
+			return lexicographical_compare(v_a, v_a+limit, v_b, v_b+limit);
+		}
+};
+/*
+	copy move
+*/
+void copy_move_dct(Mat &src, Mat &dst, int retain = 4, double qcoeff = 1.0) {
+
+	Mat grayscale;
+	cvtColor( src, grayscale, CV_BGR2GRAY );
+	grayscale.convertTo(grayscale, CV_32F);
+
+	Mat rectBuffer = src.clone();
+
+	int subm_limit = retain * retain;
+
+	int blocksize = 16;
+	int blocks_height = src.rows-blocksize+1;
+	int blocks_width = src.cols-blocksize+1;
+	int total_blocks = blocks_height * blocks_width;
+
+	vector< Mat > blocks;
+	blocks.reserve(total_blocks);
+
+	Mat tmp;
+
+	for(int y=0; y<blocks_height; y++) {
+		for(int x=0; x<blocks_width; x++) {
+			dct(grayscale(Rect(x,y,blocksize,blocksize)), tmp);
+			// tmp = tmp / qcoeff;
+			tmp.convertTo(tmp, CV_8U);
+			blocks.push_back(tmp(Rect(0,0,retain,retain)).clone());
 		}
 	}
 
-	cout << "BLOCKS:" << endl << "-------------" << endl;
-	cout << "Dims: " << blocks.rows << " x " << blocks.cols;
-}*/
+	int *index = new int[total_blocks];
+	for(int i=0; i<total_blocks; i++)
+		index[i] = i;
+
+	int *s_count = new int[src.rows * src.cols * 2];
+	for (int i=0; i<src.rows * src.cols * 2; i++ )
+		s_count[i] = 0;
+
+	sort(index, index+total_blocks, sorter<Mat>(blocks));
+
+	for(int i=0; i<total_blocks-1; i++) {
+		unsigned char *v_a = (unsigned char*)(blocks[index[i]].data);
+		unsigned char *v_b = (unsigned char*)(blocks[index[i+1]].data);
+
+		if(equal(v_a, v_a+subm_limit, v_b)) {
+			Point cur, next, shift;
+			cur.x = index[i] % blocks_width;
+			cur.y = (index[i] - cur.x) / (float)blocks_width;
+
+			next.x = index[i+1] % blocks_width;
+			next.y = (index[i+1] - next.x) / (float)blocks_width;
+
+			shift = cur - next;
+			if(shift.x < 0) shift *= -1;
+
+			double magnitude = norm(shift);
+
+			shift.y += src.rows;
+
+			if ( magnitude > blocksize ) {
+				int s_indx = shift.y * (src.cols) + shift.x;
+				s_count[s_indx]++;
+			}
+		}
+	}
+
+	for(int i=0; i<total_blocks-1; i++) {
+		unsigned char *v_a = (unsigned char*)(blocks[index[i]].data);
+		unsigned char *v_b = (unsigned char*)(blocks[index[i+1]].data);
+
+		if(equal(v_a, v_a+subm_limit, v_b)) {
+			Point cur, next, shift;
+			cur.x = index[i] % blocks_width;
+			cur.y = (index[i] - cur.x) / (float)blocks_width;
+
+			next.x = index[i+1] % blocks_width;
+			next.y = (index[i+1] - next.x) / (float)blocks_width;
+
+			shift = cur - next;
+			if(shift.x < 0) shift *= -1;
+
+			double magnitude = norm(shift);
+
+			shift.y += src.rows;
+
+			RNG rng((int)magnitude);
+			Vec3b color = Vec3b(rng.uniform(0,255), rng.uniform(0, 255), rng.uniform(0, 255));
+
+			if( s_count[shift.y*src.cols+shift.x] > 10 ) {
+				for(int ii=0; ii<blocksize; ii++) {
+					for(int jj=0; jj<blocksize; jj++) {
+							rectBuffer.at<Vec3b>(cur.y+ii, cur.x+jj) = color;
+							rectBuffer.at<Vec3b>(next.y+ii, next.x+jj) = color;
+					}
+				}
+			}
+		}
+	}
+
+	addWeighted(src, 0.2, rectBuffer, 0.8, 0, dst);
+}

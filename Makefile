@@ -2,7 +2,7 @@ include Makefile-variables-win.mk
 
 ifdef WIN
 all: $(BUILD_DIR)/phoenix.o $(BUILD_DIR)/functions.o $(BUILD_DIR)/resources.o
-	$(CC) $(BUILD_DIR)/phoenix.o $(BUILD_DIR)/functions.o $(BUILD_DIR)/resources.o $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(EXE_NAME)
+	$(CC) $(BUILD_DIR)/phoenix.o $(BUILD_DIR)/functions.o $(BUILD_DIR)/resources.o $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(EXE_NAME) -O3
 
 $(BUILD_DIR)/resources.o: resources.rc assets/eye.ico
 	windres resources.rc $(BUILD_DIR)/resources.o
@@ -24,4 +24,10 @@ clean:
 .PHONY: speedtests
 speedtests: functions.cpp
 	$(CC) -c speedtests.cpp $(INC_PATHS) $(CFLAGS) -o $(BUILD_DIR)/speedtests.o
-	$(CC) speedtests.o functions.o $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/st.exe
+	$(CC) $(BUILD_DIR)/speedtests.o $(BUILD_DIR)/functions.o $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/st.exe
+
+.PHONY: dev
+dev: functions.cpp
+	$(CC) -c dev.cpp $(INC_PATHS) $(CFLAGS) -o $(BUILD_DIR)/dev.o -O3
+	$(CC) $(BUILD_DIR)/dev.o $(BUILD_DIR)/functions.o $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/dev.exe
+	

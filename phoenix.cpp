@@ -197,6 +197,11 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	Mat got;
+	copy_move_dct(source_image, got);
+	imshow("AMCIK", got);
+	return 1;
+
 	//assign globals
 	display = vm["display"].as<bool>();
 	verbose = vm["verbose"].as<bool>();

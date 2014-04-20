@@ -13,7 +13,10 @@ using namespace cv;
 void rgb_borders(Mat &dst);
 
 /*
-
+	HSV Histogram Stretch (Auto-Levels)
+	converts the image to HSV colorspace and then applies histogram equalization
+	to the V channel, and converts back to RGB. This is used to make copies that
+	are better viewable
 */
 void hsv_histogram_stretch(Mat &src, Mat &dst);
 
@@ -51,6 +54,6 @@ int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<
 /*
 	copy-move (one day)
 */
-// void dct_madness(Mat &src);
+void copy_move_dct(Mat &src, Mat &dst, int retain = 4, double qcoeff = 1.0);
 
 #endif
