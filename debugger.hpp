@@ -14,6 +14,7 @@ class debugger {
 
 	public:
 		static debugger& instance();
+		static bool active;
 
 		void start(string msg);
 		void end(string msg);
