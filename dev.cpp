@@ -13,8 +13,9 @@ using namespace cv;
 
 int main(int argc, char *argv[]) {
 	debugger &d = debugger::instance();
-	d.active = true;
+	// d.active = true;
 
 	d.start("test");
 	d.end("test");
+	d.print("hello");
 }
