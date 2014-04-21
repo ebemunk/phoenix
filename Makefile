@@ -60,6 +60,10 @@ endif
 $(OBJ_DIR)/%.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(INC_PATHS) -c $< -o $@
 
+dev: $(OBJ_DIR)/debugger.o
+	$(CXX) $(CXXFLAGS) $(INC_PATHS) -c dev.cpp -o $(OBJ_DIR)/dev.o
+	$(CXX) $(CXXFLAGS) $(OBJ_DIR)/dev.o $(OBJ_DIR)/debugger.o $(LDPATHS) $(LDLIBS) $(LDFLAGS) -o $(BIN_DIR)/dev.exe
+
 .PHONY: clean
 clean:
 	rm -f build/*.*
