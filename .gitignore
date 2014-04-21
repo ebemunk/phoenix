@@ -1,9 +1,6 @@
 i/
 codehelp/
-build/*.o
-build/*.exe
-build/*.zip
-build/*.tar.gz
-build/phoenix
+build/*.*
+build/obj/*.*
 *.sublime-project
 *.sublime-workspace
