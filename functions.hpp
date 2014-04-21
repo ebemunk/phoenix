@@ -52,7 +52,7 @@ void average_distance(Mat &src, Mat &dst);
 int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<double> &quality_estimates);
 
 /*
-	copy-move (one day)
+	Copy-Move detection using DCT
 */
 void copy_move_dct(Mat &src, Mat &dst, int retain = 4, double qcoeff = 1.0);
 

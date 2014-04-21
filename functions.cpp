@@ -16,33 +16,6 @@ using namespace cv;
 using boost::property_tree::ptree;
 
 /*
-	RGB Borders
-	3 x (256*256) matrix with colors where one component is 255 to get the borders
-	of the RGB colorspace
-*/
-void rgb_borders(Mat &dst) {
-	dst = Mat::zeros(3, 256*256, CV_8UC3);
-	int b = 255, g=0, r=0;
-	for(int g=0; g<256; g++) {
-		for(int r=0; r<256; r++) {
-			dst.at<Vec3b>(0, g*256+r) = Vec3b(b, g, r);
-		}
-	}
-	b=0;g=255;r=0;
-	for(int b=0; b<256; b++) {
-		for(int r=0; r<256; r++) {
-			dst.at<Vec3b>(1, b*256+r) = Vec3b(b, g, r);
-		}
-	}
-	b=0;g=0;r=255;
-	for(int b=0; b<256; b++) {
-		for(int g=0; g<256; g++) {
-			dst.at<Vec3b>(2, b*256+g) = Vec3b(b, g, r);
-		}
-	}
-}
-
-/*
 	HSV Histogram Stretch (Auto-Levels)
 	converts the image to HSV colorspace and then applies histogram equalization
 	to the V channel, and converts back to RGB. This is used to make copies that
@@ -576,10 +549,9 @@ int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<
 	return num_qtables;
 }
 
-
-
-
-
+/*
+	Lexicographically sorts an index for DCT Copy-Move detection
+*/
 template<class T> class sorter {
 	private:
 		const vector<T> &values;
@@ -596,11 +568,24 @@ template<class T> class sorter {
 			return lexicographical_compare(v_a, v_a+limit, v_b, v_b+limit);
 		}
 };
+
 /*
-	copy move
+	Copy-Move detection using DCT.
+
+	implementation adapted from "Detection of Copy-Move Forgery in Digital Images"
+	by Jessica Fridrich, David Soukal, Jan Lukas
+	http://www.ws.binghamton.edu/fridrich/research/copymove.pdf
+
+	implementation adapted from Samuel Albrecht's GIMP plugin
+	https://sites.google.com/site/elsamuko/forensics/clone-detection
+
+	This function is different from the above resources:
+	- Instead of quantizing by the modified JPEG table, this will instead compare
+		the square submatrix of the DCT values, where the submatrix length is the
+		"retain" parameter
+	- The matches with the same shift-vector magnitude get painted in the same (random) color
 */
 void copy_move_dct(Mat &src, Mat &dst, int retain = 4, double qcoeff = 1.0) {
-
 	Mat grayscale;
 	cvtColor( src, grayscale, CV_BGR2GRAY );
 	grayscale.convertTo(grayscale, CV_32F);
@@ -622,7 +607,7 @@ void copy_move_dct(Mat &src, Mat &dst, int retain = 4, double qcoeff = 1.0) {
 	for(int y=0; y<blocks_height; y++) {
 		for(int x=0; x<blocks_width; x++) {
 			dct(grayscale(Rect(x,y,blocksize,blocksize)), tmp);
-			// tmp = tmp / qcoeff;
+			tmp = tmp / qcoeff;
 			tmp.convertTo(tmp, CV_8U);
 			blocks.push_back(tmp(Rect(0,0,retain,retain)).clone());
 		}
