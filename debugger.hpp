@@ -3,6 +3,9 @@
 
 using namespace std;
 
+/*
+	Singleton debugger for timing stuff and debug messages
+*/
 class debugger {
 	private:
 		chrono::system_clock::time_point t_start, t_end;
@@ -18,4 +21,5 @@ class debugger {
 
 		void start(string msg);
 		void end(string msg);
+		void print(string msg);
 };
