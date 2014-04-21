@@ -22,8 +22,8 @@ using namespace boost::filesystem;
 using boost::property_tree::ptree;
 
 //for function switcher and verbose mode
-enum analysis_type {A_ELA, A_LG, A_AVGDIST, A_HSV, A_LAB, A_LAB_FAST};
-string analysis_names[] = {"ELA", "LG", "AVGDIST", "HSV", "LAB", "LAB_FAST"};
+enum analysis_type {A_ELA, A_LG, A_AVGDIST, A_HSV, A_LAB, A_LAB_FAST, A_COPY_MOVE_DCT};
+string analysis_names[] = {"ELA", "LG", "AVGDIST", "HSV", "LAB", "LAB_FAST", "COPY_MOVE_DCT"};
 
 //globals for run_analysis function
 string output_stem;
@@ -196,11 +196,6 @@ int main(int argc, char *argv[]) {
 		cout << e.what() << endl;
 		return 1;
 	}
-
-	Mat got;
-	copy_move_dct(source_image, got);
-	imshow("AMCIK", got);
-	return 1;
 
 	//assign globals
 	display = vm["display"].as<bool>();
