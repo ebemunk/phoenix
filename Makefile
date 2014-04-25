@@ -8,13 +8,12 @@ CXXFLAGS = -g -std=c++0x -O3
 #project structure
 OBJ_DIR = build/obj
 BIN_DIR = build
-EXE_NAME = phoenix
 
 #source files and corresponding objects
 SOURCES = debugger.cpp functions.cpp phoenix.cpp
 OBJECTS = $(SOURCES:%.cpp=$(OBJ_DIR)/%.o)
 
-#included header file locations
+#header file locations
 OCV_INC = C:\opencv_2_4_6\build\include
 BOOST_INC = C:\boost_1_54_0
 INC_PATHS = -isystem$(OCV_INC) -isystem$(BOOST_INC)
@@ -23,18 +22,14 @@ INC_PATHS = -isystem$(OCV_INC) -isystem$(BOOST_INC)
 # LINKER CONFIG
 #
 #used libraries
-OCV_LIBS = -lopencv_highgui246 -lopencv_imgproc246 -lopencv_core246
-BOOST_LIBS = -lboost_program_options-mgw48-mt-1_54 -lboost_filesystem-mgw48-mt-1_54 -lboost_system-mgw48-mt-1_54
-WIN_LIBS = -lzlib -llibjpeg -llibtiff -llibpng -lcomctl32 -lgdi32
-
-#location of STATIC builds
-OCV_LIB_ROOT = C:\opencv_2_4_6\mybuild
-BOOST_LIB_ROOT = C:\boost_1_54_0\stage\lib
+OCV_LIBS = -lopencv_highgui -lopencv_imgproc -lopencv_core
+BOOST_LIBS = -lboost_program_options -lboost_filesystem -lboost_system
+WIN_DEPS = -lzlib -llibjpeg -llibtiff -llibpng -lcomctl32 -lgdi32
+LINUX_DEPS = `pkg-config opencv --libs`
 
 #linker options
 LDLIBS = $(OCV_LIBS) $(BOOST_LIBS)
-LDPATHS = -L$(OCV_LIB_ROOT)/3rdparty/lib -L$(OCV_LIB_ROOT)/lib -L$(BOOST_LIB_ROOT)
-LDFLAGS = -static
+LDFLAGS =
 
 #
 # WINDOWS
@@ -44,17 +39,22 @@ WIN = 1
 
 ifdef WIN
 #windows settings
-LDLIBS += $(WIN_LIBS)
+LDLIBS += $(WIN_DEPS)
 EXE_NAME = phoenix.exe
+LDFLAGS = -static
 
 all: $(OBJECTS) $(OBJ_DIR)/resources.o
-	$(CXX) $(CXXFLAGS) $(OBJECTS) $(LDPATHS) $(LDLIBS) $(LDFLAGS) -o $(BIN_DIR)/$(EXE_NAME)
+	$(CXX) $(CXXFLAGS) $(OBJECTS) $(LDLIBS) $(LDFLAGS) -o $(BIN_DIR)/$(EXE_NAME)
 
 $(OBJ_DIR)/resources.o: resources.rc assets/eye.ico
 	windres resources.rc $(OBJ_DIR)/resources.o
 else
+#linux settings
+LDLIBS += $(LINUX_DEPS)
+EXE_NAME = phoenix
+
 all: $(OBJECTS)
-	$(CXX) $(CXXFLAGS) $(OBJECTS) $(LDPATHS) $(LDLIBS) $(LDFLAGS) -o $(BIN_DIR)/$(EXE_NAME)
+	$(CXX) $(CXXFLAGS) $(OBJECTS) $(LDLIBS) $(LDFLAGS) -o $(BIN_DIR)/$(EXE_NAME)
 endif
 
 $(OBJ_DIR)/%.o: %.cpp
@@ -62,7 +62,7 @@ $(OBJ_DIR)/%.o: %.cpp
 
 dev: $(OBJ_DIR)/debugger.o
 	$(CXX) $(CXXFLAGS) $(INC_PATHS) -c dev.cpp -o $(OBJ_DIR)/dev.o
-	$(CXX) $(CXXFLAGS) $(OBJ_DIR)/dev.o $(OBJ_DIR)/debugger.o $(LDPATHS) $(LDLIBS) $(LDFLAGS) -o $(BIN_DIR)/dev.exe
+	$(CXX) $(CXXFLAGS) $(OBJ_DIR)/dev.o $(OBJ_DIR)/debugger.o $(LDLIBS) $(LDFLAGS) -o $(BIN_DIR)/dev.exe
 
 .PHONY: clean
 clean:
