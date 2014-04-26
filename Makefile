@@ -53,7 +53,7 @@ else
 EXE_NAME = phoenix
 LDLIBS += $(LINUX_DEPS)
 #set rpath on linux because of shared lib build
-LDFLAGS = -Wl,-rpath,\$$ORIGIN,-z
+LDFLAGS = -Wl,-rpath,\$$ORIGIN/libs,-z,origin
 
 all: $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(OBJECTS) $(LDLIBS) $(LDFLAGS) -o $(BIN_DIR)/$(EXE_NAME)
