@@ -39,8 +39,8 @@ WIN = 1
 
 ifdef WIN
 #windows settings
-LDLIBS += $(WIN_DEPS)
 EXE_NAME = phoenix.exe
+LDLIBS += $(WIN_DEPS)
 LDFLAGS = -static
 
 all: $(OBJECTS) $(OBJ_DIR)/resources.o
@@ -50,8 +50,10 @@ $(OBJ_DIR)/resources.o: resources.rc assets/eye.ico
 	windres resources.rc $(OBJ_DIR)/resources.o
 else
 #linux settings
-LDLIBS += $(LINUX_DEPS)
 EXE_NAME = phoenix
+LDLIBS += $(LINUX_DEPS)
+#set rpath on linux because of shared lib build
+LDFLAGS = -Wl,-rpath,\$$ORIGIN,-z
 
 all: $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(OBJECTS) $(LDLIBS) $(LDFLAGS) -o $(BIN_DIR)/$(EXE_NAME)
