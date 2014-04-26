@@ -1,6 +1,4 @@
 i/
 codehelp/
-build/*.*
-build/obj/*.*
 *.sublime-project
 *.sublime-workspace
