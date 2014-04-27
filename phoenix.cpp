@@ -4,6 +4,7 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -21,66 +22,50 @@ using namespace boost::program_options;
 using namespace boost::filesystem;
 using boost::property_tree::ptree;
 
-//for function switcher and verbose mode
-enum analysis_type {A_ELA, A_LG, A_AVGDIST, A_HSV, A_LAB, A_LAB_FAST, A_COPY_MOVE_DCT};
-string analysis_names[] = {"ELA", "LG", "AVGDIST", "HSV", "LAB", "LAB_FAST", "COPY_MOVE_DCT"};
-
 //globals for run_analysis function
 string output_stem;
 ptree root;
-bool output, display, verbose, autolevels;
+bool output, display, autolevels;
+
+//run_analysis constants
+enum analysis_type {A_ELA, A_LG, A_AVGDIST, A_HSV, A_LAB, A_LAB_FAST, A_COPY_MOVE_DCT};
+string analysis_name[] = {
+	"Error Level Analysis", "Luminance Gradient", "Average Distance",
+	"HSV Histogram", "Lab Histogram", "Lab Histogram (fast)", "Copy Move Detection (DCT)"
+};
+string analysis_abbr[] = {"ela", "lg", "avgdist", "hsv", "lab", "lab_fast", "copymove"};
 
 //run analysis on src image
 void run_analysis(Mat &src, Mat &dst, analysis_type type, vector<int> params) {
-	if(verbose) {
-		cout << "DEBUG: " << analysis_names[type] << " Starting..." << endl;
-		system("pause");
-	}
-
-	string output_filepath; //for saving
-	string title; //for display
-	string ptree_element; //for json output
+	string output_filepath = output_stem + "_" + analysis_abbr[type]; //file name
+	string title = analysis_name[type]; //display window title
+	string ptree_element = analysis_abbr[type]; //json tree title
 
 	switch(type) {
 		case A_ELA:
-			output_filepath = output_stem + "_ela";
-			title = "Error Level Analysis";
-			ptree_element = "ela";
 			error_level_analysis(src, dst, params[0]);
 			break;
 		case A_LG:
-			output_filepath = output_stem + "_lg";
-			title = "Luminance Gradient";
-			ptree_element = "lg";
 			luminance_gradient(src, dst);
 			break;
 		case A_AVGDIST:
-			output_filepath = output_stem + "_avgdist";
-			title = "Average Distance";
-			ptree_element = "avgdist";
 			average_distance(src, dst);
 			break;
 		case A_HSV:
-			output_filepath = output_stem + "_hsv";
-			title = "HSV Histogram";
-			ptree_element = "hsv";
 			hsv_histogram(src, dst, params[0]);
 			break;
 		case A_LAB:
-			output_filepath = output_stem + "_lab";
-			title = "Lab Histogram";
-			ptree_element = "lab";
 			lab_histogram(src, dst);
 			break;
 		case A_LAB_FAST:
-			output_filepath = output_stem + "_lab_fast";
-			title = "Lab Histogram";
-			ptree_element = "lab_fast";
 			lab_histogram_fast(src, dst);
+			break;
+		case A_COPY_MOVE_DCT:
+			copy_move_dct(src, dst, params[0], params[1]);
 			break;
 	}
 
-	if(autolevels && type != A_HSV & type != A_LAB & type != A_LAB_FAST) {
+	if(autolevels && type != A_HSV && type != A_LAB && type != A_LAB_FAST && type != A_COPY_MOVE_DCT) {
 		hsv_histogram_stretch(dst, dst);
 		output_filepath += "_autolevels.png";
 		ptree_element += "_autolevels";
@@ -102,11 +87,6 @@ void run_analysis(Mat &src, Mat &dst, analysis_type type, vector<int> params) {
 	} else { //release memory
 		dst.release();
 	}
-
-	if(verbose) {
-		cout << "DEBUG: " << analysis_names[type] << " Finished." << endl;
-		system("pause");
-	}
 }
 
 int main(int argc, char *argv[]) {
@@ -116,19 +96,22 @@ int main(int argc, char *argv[]) {
 		("help,h", "List all arguments - produce help message")
 		("file,f", value<string>()->required(), "Source image file")
 		("output,o", value<string>()->implicit_value("./"), "Output folder path")
+
 		("ela", value<int>()->implicit_value(70), "Error Level Analysis [optional resave quality]")
 		("hsv", value<int>()->implicit_value(0), "HSV Colorspace Histogram")
 		("lab", value<int>()->implicit_value(0), "Lab Colorspace Histogram")
 		("labfast", value<int>()->implicit_value(0), "Lab Colorspace Histogram (Fast Version)")
-		// ("borders", bool_switch()->default_value(false), "Show RGB borders in histograms")
 		("lg", bool_switch()->default_value(false), "Luminance Gradient")
 		("avgdist", bool_switch()->default_value(false), "Average Distance")
+		("copymove", bool_switch()->default_value(false), "Copy-Move Detection (DCT)")
+
+		("autolevels", bool_switch()->default_value(false), "Apply histogram stretch (Auto-Levels) to outputs")
 		("quality,q", bool_switch()->default_value(true), "Estimate JPEG Quality")
-		// ("dct", bool_switch()->default_value(false), "DCT")
+		
 		("display,d", bool_switch()->default_value(false), "Display outputs")
-		("autolevels", bool_switch()->default_value(false), "Apply histogram stretching (Auto-Levels) to outputs")
-		("invoke", value<string>(), "Invoke php script after execution")
 		("verbose,v", bool_switch()->default_value(false), "Verbose (debug) mode")
+		("json", bool_switch()->default_value(false), "Output JSON")
+		("invoke", value<string>(), "Invoke php script after execution")
 	;
 
 	variables_map vm;
@@ -169,26 +152,29 @@ int main(int argc, char *argv[]) {
 	Mat source_image;
 
 	try { //check and try to open source image file (-f)
-		if(!exists(vm["file"].as<string>())) {
+		source_path = vm["file"].as<string>();
+		if(!exists(source_path)) {
 			cout << "Error: File not found!" << endl;
+			cout << "File path input: " << source_path << endl;
 			return 1;
 		}
 
 		//load image to memory
-		source_image = imread(vm["file"].as<string>(), CV_LOAD_IMAGE_COLOR);
+		source_image = imread(source_path.string(), CV_LOAD_IMAGE_COLOR);
 		if(source_image.data == NULL) {
 			cout << "Error: Cannot read image!" << endl;
+			cout << "File path input: " << source_path << endl;
 			return 1;
 		}
 
-		source_path = vm["file"].as<string>();
-		if(vm.count("output") && !is_directory(vm["output"].as<string>())) {
-			cout << "Error: Output directory does not exist!" << endl;
-			return 1;
-		}
-
+		//validate output path
 		if(vm.count("output")) {
 			output_path = vm["output"].as<string>();
+			if(!is_directory(output_path)) {
+				cout << "Error: Output directory does not exist!" << endl;
+				cout << "Output directory input: " << output_path << endl;
+				return 1;
+			}
 			output_path = canonical(output_path.make_preferred());
 		}
 	} catch(const exception &e) { //cannot load the image for some reason
@@ -199,15 +185,11 @@ int main(int argc, char *argv[]) {
 
 	//assign globals
 	display = vm["display"].as<bool>();
-	verbose = vm["verbose"].as<bool>();
 	output = vm.count("output");
 	autolevels = vm["autolevels"].as<bool>();
 	output_stem = output_path.string() + "/" + source_path.stem().string();
-
-	if(verbose) {
-		cout << "DEBUG: Image Loaded. Ready to go..." << endl;
-		system("pause");
-	}
+	
+	bool verbose = vm["verbose"].as<bool>();
 
 	if(vm.count("ela")) {
 		Mat ela;
@@ -255,19 +237,13 @@ int main(int argc, char *argv[]) {
 		run_analysis(source_image, lab, A_LAB_FAST, params);
 	}
 
-	int num_qtables = 0;
-	vector<qtable> qtables;
-	vector<double> quality;
-
 	if(vm["quality"].as<bool>()) {
-		num_qtables = estimate_jpeg_quality(vm["file"].as<string>().c_str(), qtables, quality);
-	}
+		int num_qtables = 0;
+		vector<qtable> qtables;
+		vector<double> quality;
 
-	// if(vm["dct"].as<bool>()) {
-	// 	dct_madness(source_image);
-	// }
+		num_qtables = estimate_jpeg_quality(source_path.string().c_str(), qtables, quality);
 
-	if(vm.count("output")) {
 		if(num_qtables > 0) { //if we have quantization tables, save them to ptree
 			root.put("imagick_estimate", quality[0]);
 			root.put("hf_estimate", quality[1]);
@@ -285,48 +261,33 @@ int main(int argc, char *argv[]) {
 				tableindex << "qtables." << i;
 				root.put(tableindex.str(), dqt.str());
 			}
-		} else {
 		}
+	}
 
+	// if(vm["dct"].as<bool>()) {
+	// 	dct_madness(source_image);
+	// }
+
+	if(vm.count("output")) {
 		//invoke the -invoke param as php script, passing in the ptree as json
-		if(vm.count("invoke")) {
-			stringstream data;
-			write_json(data, root, false);
-			string json_string = data.str();
-			boost::algorithm::replace_all(json_string, "\"", "\\\""); //escape quotes
-			string script_call = "php " + vm["invoke"].as<string>() + " \"" + json_string + "\"";
-			// cout << script_call << endl;
-			cout << system(script_call.c_str()) << endl;
-		} else { //output results to stdout
-			// write_ini(cout, root);
-			cout << "Last Resave Quality" << endl;
-			cout << "  ImageMagick Estimate: " << (int) quality[0] << endl;
-			cout << "  Hackerfactor Estimate: " << (int) quality[1] << endl;
+		// if(vm.count("invoke")) {
+		// 	stringstream data;
+		// 	write_json(data, root, false);
+		// 	string json_string = data.str();
+		// 	boost::algorithm::replace_all(json_string, "\"", "\\\""); //escape quotes
+		// 	string script_call = "php " + vm["invoke"].as<string>() + " \"" + json_string + "\"";
+		// 	// cout << script_call << endl;
+		// 	cout << system(script_call.c_str()) << endl;
+		// }
 
-			cout << "  Quantization Tables" << endl;
-			for(int i=0; i<num_qtables; i++) {
-				cout << "    " << (i == 0 ? "Luminance" : "Chrominance") << endl;
-				for(int j=0; j<8; j++) {
-					cout << "    ";
-					for(int k=0; k<8; k++) {
-						cout << qtables[0].table.at<float>(j, k) << " ";
-					}
-					cout << endl;
-				}
-			}
-		}
-
-		if(verbose) {
-			write_json(cout, root);
-		}
+	}
+	
+	if(vm["json"].as<bool>() || !vm["quality"].defaulted()) {
+		write_json(cout, root);
 	}
 
-	if(vm["display"].as<bool>()) {
+	if(display) {
 		waitKey(0);
-	}
-
-	if(vm["verbose"].as<bool>()) {
-		cout << "DEBUG: All done." << endl;
 	}
 
 	return 0;
