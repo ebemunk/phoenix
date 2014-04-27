@@ -380,7 +380,7 @@ int extract_jpeg_marker(const char* filename, char marker, vector<char*> &list) 
 }
 
 /*
-	Estimate jpeg quality from extracted DQTs (Discrete Quantization Tables)
+	Estimate jpeg quality from extracted QTs (Quantization Tables)
 
 	uses estimation method in Neal Krawetz's jpegquality tool
 	http://www.hackerfactor.com/src/jpegquality.c
