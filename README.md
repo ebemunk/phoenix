@@ -3,28 +3,32 @@ phoenix - Image Forensics
 phoenix is a small image forensics tool that can run some common analyses on images. It was inspired by the image analyses at the [Hackerfactor Blog](http://www.hackerfactor.com/blog/), and implements some of the algorithms used there. It is named phoenix because it has resurrected many times before taking its current form in C++.
 
 Features:
-
 * Error Level Analysis
 * Luminance Gradient
 * Average Distance
 * HSV and Lab colorspace histograms
 * JPEG resave quality estimate ([ImageMagick](http://www.imagemagick.org/script/index.php)-style and [Hackerfactor jpegquality](http://www.hackerfactor.com/src/jpegquality.c) estimates)
 * Extract JPEG Quantization Tables
+* Copy-Move (Clone Stamp) Detection
 
 #Usage
 * `-h | -help` display help text.
 * `-f | -file <path>` Required, the path to the source image.
-* `-o | -output [path]` Save results in files (as PNG), optionally to `path`.
-* `-d | -display` Display results.
-* `-ela` Error Level Analysis
+* `-o | -output [path=./]` Save results in files (as PNG)
+* `-d | -display` Display results
+* `-ela [quality=70]` Error Level Analysis
 * `-lg` Luminance Gradient
 * `-avgdist` Average Distance
-* `-hsv` HSV Colorspace Histogram
-* `-lab` Lab Colorspace Histogram
-* `-labfast` Lab Colorspace Histogram, faster but less accurate version (256*256 instead of 1024*1024 output)
-* `-autolevels` Flag to enable histogram equalization (auto-levels) on output images
+* `-hsv [whitebg=0]` HSV Colorspace Histogram
+* `-lab [whitebg=0]` Lab Colorspace Histogram
+* `-labfast [whitebg=0]` Lab Colorspace Histogram, faster but less accurate version (256*256 instead of 1024*1024 output)
+* `-copymove [retain=4] [qcoeff=1.0]` Copy-Move Detection
+* `-a | -autolevels` Flag to enable histogram equalization (auto-levels) on output images
 
-#Screenshots
+#Compiling
+phoenix depends on OpenCV (2.4.9) and Boost (1.55.0) Libraries. Exact versions are probably not required. Try `make` to compile. The defaults should work if you didn't do anything fancy while compiling OpenCV or Boost, i.e. change default install path.
+
+#Outputs
 Here are some examples of phoenix output with the image used in the legendary [Body By Victoria](http://www.hackerfactor.com/blog/?/archives/322-Body-By-Victoria.html) analysis by Neal Krawetz.
 
 ##ELA (Error Level Analysis)
@@ -41,9 +45,6 @@ Here are some examples of phoenix output with the image used in the legendary [B
 
 ##Lab Colorspace Histogram
 ![Lab Histogram](assets/bbv_lab.png)
-
-#Compiling
-phoenix depends on OpenCV 2.4.6 and Boost 1.54.0 Libraries. Exact versions are probably not required. There is Windows (`Makefile-variables-win.mk`) and Linux (`Makefile-variables-linux.mk`) versions for the make variables to keep things a bit tidy. Change the first line of `Makefile` to match your system and edit the corresponding `Makefile-variables` file to match your local settings. The defaults should work if you didn't do anything fancy while compiling OpenCV or Boost.
 
 #Resources
 Some resources I used while developing many of the algorithms here.
