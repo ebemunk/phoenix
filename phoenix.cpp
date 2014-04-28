@@ -11,6 +11,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <boost/foreach.hpp>
 #include <chrono>
 
 #include "structs.h"
@@ -36,14 +37,23 @@ string analysis_name[] = {
 string analysis_abbr[] = {"ela", "lg", "avgdist", "hsv", "lab", "lab_fast", "copymove"};
 
 //run analysis on src image
-void run_analysis(Mat &src, Mat &dst, analysis_type type, vector<int> params) {
+void run_analysis(Mat &src, Mat &dst, analysis_type type, vector<double> params) {
 	string output_filepath = output_stem + "_" + analysis_abbr[type]; //file name
 	string title = analysis_name[type]; //display window title
 	string ptree_element = analysis_abbr[type]; //json tree title
 
+	bool apply_autolevels = autolevels && (type == A_ELA || type == A_LG || type == A_AVGDIST);
+	if(apply_autolevels) {
+		output_filepath += "_autolevels.png";
+		ptree_element += "_autolevels";
+	} else {
+		output_filepath += ".png";
+	}
+
 	switch(type) {
 		case A_ELA:
 			error_level_analysis(src, dst, params[0]);
+			root.put(ptree_element + ".quality", params[0]);
 			break;
 		case A_LG:
 			luminance_gradient(src, dst);
@@ -53,32 +63,35 @@ void run_analysis(Mat &src, Mat &dst, analysis_type type, vector<int> params) {
 			break;
 		case A_HSV:
 			hsv_histogram(src, dst, params[0]);
+			root.put(ptree_element + ".whitebg", (bool)params[0]);
 			break;
 		case A_LAB:
-			lab_histogram(src, dst);
+			lab_histogram(src, dst, params[0]);
+			root.put(ptree_element + ".whitebg", (bool)params[0]);
 			break;
 		case A_LAB_FAST:
-			lab_histogram_fast(src, dst);
+			lab_histogram_fast(src, dst, params[0]);
+			root.put(ptree_element + ".whitebg", (bool)params[0]);
 			break;
 		case A_COPY_MOVE_DCT:
 			copy_move_dct(src, dst, params[0], params[1]);
+			root.put(ptree_element + ".retain", params[0]);
+			root.put(ptree_element + ".qcoeff", params[1]);
 			break;
 	}
 
-	if(autolevels && type != A_HSV && type != A_LAB && type != A_LAB_FAST && type != A_COPY_MOVE_DCT) {
+	if(apply_autolevels) {
 		hsv_histogram_stretch(dst, dst);
-		output_filepath += "_autolevels.png";
-		ptree_element += "_autolevels";
-	} else {
-		output_filepath += ".png";
 	}
 
 	if(output) { //output image & add to ptree
 		bool write_success = imwrite(output_filepath, dst);
-		// if(!write_success) cout << "cant write" << endl;
-
-		string filepath = canonical(output_filepath).make_preferred().string();
-		root.put(ptree_element + ".filename", filepath);
+		if(!write_success) {
+			root.put(ptree_element + ".filename", "Error! Do you have write permission?");
+		} else {
+			string filepath = canonical(output_filepath).make_preferred().string();
+			root.put(ptree_element + ".filename", filepath);
+		}
 	}
 	
 	if(display) { //display right away, waitKey(0) at the end of program
@@ -86,6 +99,21 @@ void run_analysis(Mat &src, Mat &dst, analysis_type type, vector<int> params) {
 		imshow(title, dst);
 	} else { //release memory
 		dst.release();
+	}
+}
+
+//override ostream << operator for vector<double> so we can use it as implicit_value
+//or as boost puts it, make vector<double> ostream'able
+namespace std {
+	static std::ostream& operator<<(std::ostream& os, const std::vector<double>& v) {
+		os << '{';
+		for(int i=0; i<v.size(); i++) {
+			if (i!=0)
+			os << ", ";
+			os << v[i];
+		}
+		os << '}';
+		return os;
 	}
 }
 
@@ -103,15 +131,14 @@ int main(int argc, char *argv[]) {
 		("labfast", value<int>()->implicit_value(0), "Lab Colorspace Histogram (Fast Version)")
 		("lg", bool_switch()->default_value(false), "Luminance Gradient")
 		("avgdist", bool_switch()->default_value(false), "Average Distance")
-		("copymove", bool_switch()->default_value(false), "Copy-Move Detection (DCT)")
+		("copymove", value<vector<double>>()->multitoken()->implicit_value(vector<double>{4, 1.0}), "Copy-Move Detection (DCT)")
 
-		("autolevels", bool_switch()->default_value(false), "Apply histogram stretch (Auto-Levels) to outputs")
+		("autolevels,a", bool_switch()->default_value(false), "Apply histogram stretch (Auto-Levels) to outputs")
 		("quality,q", bool_switch()->default_value(true), "Estimate JPEG Quality")
-		
+
 		("display,d", bool_switch()->default_value(false), "Display outputs")
 		("verbose,v", bool_switch()->default_value(false), "Verbose (debug) mode")
-		("json", bool_switch()->default_value(false), "Output JSON")
-		("invoke", value<string>(), "Invoke php script after execution")
+		("json,j", bool_switch()->default_value(false), "Output JSON")
 	;
 
 	variables_map vm;
@@ -139,7 +166,7 @@ int main(int argc, char *argv[]) {
 	} catch (const exception &e) { //error with command options
 		cout << "Error: Cannot parse program commands!" << endl;
 		cout << e.what() << endl;
-		cout << desc << endl;
+		cout << "Use -h or -help flag to see available commands." << endl;
 		return 1;
 	} catch(...) {
 		cout << "Error: Fatal error while parsing options." << endl;
@@ -193,48 +220,58 @@ int main(int argc, char *argv[]) {
 
 	if(vm.count("ela")) {
 		Mat ela;
-		vector<int> params;
-		params.push_back(vm["ela"].as<int>());
+		vector<double> params {(double) vm["ela"].as<int>()};
 
 		run_analysis(source_image, ela, A_ELA, params);
 	}
 
 	if(vm["lg"].as<bool>()) {
 		Mat lg;
-		vector<int> params;
+		vector<double> params;
 
 		run_analysis(source_image, lg, A_LG, params);
 	}
 
 	if(vm["avgdist"].as<bool>()) {
 		Mat avgdist;
-		vector<int> params;
+		vector<double> params;
 
 		run_analysis(source_image, avgdist, A_AVGDIST, params);
 	}
 
 	if(vm.count("hsv")) {
 		Mat hsv;
-		vector<int> params;
-		params.push_back(vm["hsv"].as<int>());
+		vector<double> params {(double) vm["hsv"].as<int>()};
 
 		run_analysis(source_image, hsv, A_HSV, params);
 	}
 
 	if(vm.count("lab")) {
 		Mat lab;
-		vector<int> params;
-		params.push_back(vm["lab"].as<int>());
+		vector<double> params {(double) vm["lab"].as<int>()};
 
 		run_analysis(source_image, lab, A_LAB, params);
 	}
 
 	if(vm.count("labfast")) {
 		Mat lab;
-		vector<int> params;
-		params.push_back(vm["labfast"].as<int>());
+		vector<double> params {(double) vm["labfast"].as<int>()};
 
 		run_analysis(source_image, lab, A_LAB_FAST, params);
+	}
+
+	if(vm.count("copymove")) {
+		Mat copymove;
+		vector<double> input = vm["copymove"].as<vector<double>>();
+		vector<double> params;
+		if(input.size() == 1) {
+			if(input[0] > 16) input[0] = 16;
+			params = {input[0], 1.0};
+		} else {
+			params = input;
+		}
+
+		run_analysis(source_image, copymove, A_COPY_MOVE_DCT, params);
 	}
 
 	if(vm["quality"].as<bool>()) {
@@ -264,24 +301,10 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	// if(vm["dct"].as<bool>()) {
-	// 	dct_madness(source_image);
-	// }
-
-	if(vm.count("output")) {
-		//invoke the -invoke param as php script, passing in the ptree as json
-		// if(vm.count("invoke")) {
-		// 	stringstream data;
-		// 	write_json(data, root, false);
-		// 	string json_string = data.str();
-		// 	boost::algorithm::replace_all(json_string, "\"", "\\\""); //escape quotes
-		// 	string script_call = "php " + vm["invoke"].as<string>() + " \"" + json_string + "\"";
-		// 	// cout << script_call << endl;
-		// 	cout << system(script_call.c_str()) << endl;
-		// }
-
+	if(vm.count("output") == 0 && vm["display"].defaulted()) {
+		cout << "Warning: No -output or -display option specified. You might want to use one (or both)." << endl;
 	}
-	
+
 	if(vm["json"].as<bool>() || !vm["quality"].defaulted()) {
 		write_json(cout, root);
 	}
