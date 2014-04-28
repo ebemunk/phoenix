@@ -44,7 +44,7 @@ LDLIBS += $(WIN_DEPS)
 LDFLAGS = -static
 
 all: $(OBJECTS) $(OBJ_DIR)/resources.o
-	$(CXX) $(CXXFLAGS) $(OBJECTS) $(LDLIBS) $(LDFLAGS) -o $(BIN_DIR)/$(EXE_NAME)
+	$(CXX) $(CXXFLAGS) $(OBJECTS) $(OBJ_DIR)/resources.o $(LDLIBS) $(LDFLAGS) -o $(BIN_DIR)/$(EXE_NAME)
 
 $(OBJ_DIR)/resources.o: resources.rc assets/eye.ico
 	windres resources.rc $(OBJ_DIR)/resources.o
