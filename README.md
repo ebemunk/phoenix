@@ -26,7 +26,7 @@ Features:
 * `-a | -autolevels` Flag to enable histogram equalization (auto-levels) on output images
 
 #Compiling
-phoenix depends on OpenCV (2.4.9) and Boost (1.55.0) Libraries. Exact versions are probably not required. Try `make` to compile. The defaults should work if you didn't do anything fancy while compiling OpenCV or Boost, i.e. change default install path.
+phoenix depends on OpenCV (2.4.9) and Boost (1.55.0) Libraries. Exact versions are probably not required. Try `make` to compile. The defaults should work if you didn't do anything fancy while compiling OpenCV or Boost, i.e. change default install path. You can use the shell scripts in `install_scripts` to compile Boost, OpenCV and then phoenix. The scripts are intended for vagrant provisioning, but you can also use it to automatically compile phoenix. Don't clone the repository if you will use the scripts, it will do it for you.
 
 #Outputs
 Here are some examples of phoenix output with the image used in the legendary [Body By Victoria](http://www.hackerfactor.com/blog/?/archives/322-Body-By-Victoria.html) analysis by Neal Krawetz.
