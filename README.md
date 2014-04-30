@@ -32,19 +32,28 @@ phoenix depends on OpenCV (2.4.9) and Boost (1.55.0) Libraries. Exact versions a
 Here are some examples of phoenix output with the image used in the legendary [Body By Victoria](http://www.hackerfactor.com/blog/?/archives/322-Body-By-Victoria.html) analysis by Neal Krawetz.
 
 ##ELA (Error Level Analysis)
+`./phoenix -f bbv.jpg -o -d -ela`
 ![Error Level Analysis](assets/bbv_ela.png)
 
 ##LG (Luminance Gradient)
+`./phoenix -f bbv.jpg -o -d -lg`
 ![Luminance Gradient](assets/bbv_lg.png)
 
 ##AVGDIST (Average-Distance of Neighbor Pixels)
+`./phoenix -f bbv.jpg -o -d -avgdist`
 ![Average Distance](assets/bbv_avgdist.png)
 
 ##HSV Colorspace Histogram
+`./phoenix -f bbv.jpg -o -d -hsv`
 ![HSV Histogram](assets/bbv_hsv.png)
 
 ##Lab Colorspace Histogram
-![Lab Histogram](assets/bbv_lab.png)
+`./phoenix -f bbv.jpg -o -d -labfast`
+![Lab Histogram](assets/bbv_lab_fast.png)
+
+##Copy-Move Detection
+`./phoenix -f bbv.jpg -o -d -copymove 4 5`
+![Copy-Move Detection](assets/bbv_copymove.png)
 
 #Resources
 Some resources I used while developing many of the algorithms here.
