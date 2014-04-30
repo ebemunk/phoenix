@@ -49,6 +49,12 @@ Here are some examples of phoenix output with the image used in the legendary [B
 ```
 ![Average Distance](assets/bbv_avgdist.png)
 
+##Copy-Move Detection
+```
+./phoenix -f bbv.jpg -o -d -copymove 4 5
+```
+![Copy-Move Detection](assets/bbv_copymove.png)
+
 ##HSV Colorspace Histogram
 ```
 ./phoenix -f bbv.jpg -o -d -hsv
@@ -60,12 +66,6 @@ Here are some examples of phoenix output with the image used in the legendary [B
 ./phoenix -f bbv.jpg -o -d -labfast
 ```
 ![Lab Histogram](assets/bbv_lab_fast.png)
-
-##Copy-Move Detection
-```
-./phoenix -f bbv.jpg -o -d -copymove 4 5
-```
-![Copy-Move Detection](assets/bbv_copymove.png)
 
 #Resources
 Some resources I used while developing many of the algorithms here.
