@@ -27,23 +27,11 @@ pause >nul
 
 COPY "%~1 " "%~dp0output\%TIMESTAMP%"
 cls
-REM pause
+
 echo "Done!
 explorer.exe "%~dp0output\%TIMESTAMP%"
-start "" "C:\Program Files (x86)\PhotoMEBeta\photome.exe" "%~1"
-REM Something is wrong past this might have to remove metadata function :(
-REM Generating metadata...
+REM start "" "C:\Program Files (x86)\PhotoMEBeta\photome.exe" "%~1"
 
-REM set /p Gen=Do you wan't to generate meta data information? [yes/no (default:yes)]:
-REM IF "%Gen%"=="no" ( exit
-REM ) else (
-REM pause
-REM %~dp0\exiftool\exiftool.exe -xmp -b %~1 > > %~dp0output\%TIMESTAMP%\out.xmp
-REM pause
-REM %~dp0\exiftool\exiftool.exe -b ThumbnailImage %~1 > %~dp0output\%TIMESTAMP%\thumbnail.jpg
-REM pause
-
-REM )
 exit
 
 
