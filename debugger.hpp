@@ -8,7 +8,7 @@ using namespace std;
 */
 class debugger {
 	private:
-		chrono::system_clock::time_point t_start, t_end;
+		chrono::high_resolution_clock::time_point t_start, t_end;
 
 		debugger() {}
 
