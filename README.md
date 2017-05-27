@@ -1,5 +1,5 @@
-phoenix - Image Forensics
-=======
+# phoenix - Image Forensics
+
 phoenix is a small image forensics tool that can run some common analyses on images. It was inspired by the image analyses at the [Hackerfactor Blog](http://www.hackerfactor.com/blog/), and implements some of the algorithms used there. It is named phoenix because it has resurrected many times before taking its current form in C++.
 
 Features:
@@ -11,7 +11,7 @@ Features:
 * Extract JPEG Quantization Tables
 * Copy-Move (Clone Stamp) Detection
 
-#Usage
+## Usage
 * `-h | -help` display help text.
 * `-f | -file <path>` Required, the path to the source image.
 * `-o | -output [path=./]` Save results in files (as PNG)
@@ -21,53 +21,53 @@ Features:
 * `-avgdist` Average Distance
 * `-hsv [whitebg=0]` HSV Colorspace Histogram
 * `-lab [whitebg=0]` Lab Colorspace Histogram
-* `-labfast [whitebg=0]` Lab Colorspace Histogram, faster but less accurate version (256*256 instead of 1024*1024 output)
+* `-labfast [whitebg=0]` Lab Colorspace Histogram, faster but less accurate version (256x256 instead of 1024x1024 output)
 * `-copymove [retain=4] [qcoeff=1.0]` Copy-Move Detection
 * `-a | -autolevels` Flag to enable histogram equalization (auto-levels) on output images
 
-#Compiling
+## Compiling
 phoenix depends on OpenCV (2.4.9) and Boost (1.55.0) Libraries. Exact versions are probably not required. Try `make` to compile. The defaults should work if you didn't do anything fancy while compiling OpenCV or Boost, i.e. change default install path. You can use the shell scripts in `install_scripts` to compile Boost, OpenCV and then phoenix. The scripts are intended for provisioning Vagrant machines, but you can also use it to automatically compile phoenix. Don't clone the repository if you will use the scripts, it will do it for you.
 
-#Outputs
+## Outputs
 Here are some examples of phoenix output with the image used in the legendary [Body By Victoria](http://www.hackerfactor.com/blog/?/archives/322-Body-By-Victoria.html) analysis by Neal Krawetz.
 
-##ELA (Error Level Analysis)
+### ELA (Error Level Analysis)
 ```
 ./phoenix -f bbv.jpg -o -d -ela
 ```
 ![Error Level Analysis](assets/bbv_ela.png)
 
-##LG (Luminance Gradient)
+### LG (Luminance Gradient)
 ```
 ./phoenix -f bbv.jpg -o -d -lg
 ```
 ![Luminance Gradient](assets/bbv_lg.png)
 
-##AVGDIST (Average-Distance of Neighbor Pixels)
+### AVGDIST (Average-Distance of Neighbor Pixels)
 ```
 ./phoenix -f bbv.jpg -o -d -avgdist
 ```
 ![Average Distance](assets/bbv_avgdist.png)
 
-##Copy-Move Detection
+### Copy-Move Detection
 ```
 ./phoenix -f bbv.jpg -o -d -copymove 4 5
 ```
 ![Copy-Move Detection](assets/bbv_copymove.png)
 
-##HSV Colorspace Histogram
+### HSV Colorspace Histogram
 ```
 ./phoenix -f bbv.jpg -o -d -hsv
 ```
 ![HSV Histogram](assets/bbv_hsv.png)
 
-##Lab Colorspace Histogram
+### Lab Colorspace Histogram
 ```
 ./phoenix -f bbv.jpg -o -d -labfast
 ```
 ![Lab Histogram](assets/bbv_lab_fast.png)
 
-#Resources
+## Resources
 Some resources I used while developing many of the algorithms here.
 
 * [Hackerfactor Blog](http://www.hackerfactor.com/blog/)
