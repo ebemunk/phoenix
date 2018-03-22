@@ -6,10 +6,11 @@
 #include "structs.h"
 
 using namespace cv;
+using namespace std;
 
 /*
 	Return all colors which have at least one component (R,G,B) set to 255
-*/	
+*/
 void rgb_borders(Mat &dst);
 
 /*
@@ -49,7 +50,7 @@ void average_distance(Mat &src, Mat &dst);
 /*
 	Estimate JPEG quality using Hackerfactor and Imagemagick estimates
 */
-int estimate_jpeg_quality(const char* filename, vector<qtable> &qtables, vector<double> &quality_estimates);
+int estimate_jpeg_quality(const char *filename, vector<qtable> &qtables, vector<double> &quality_estimates);
 
 /*
 	Copy-Move detection using DCT
